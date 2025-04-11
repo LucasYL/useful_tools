@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 245, 247, 250;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 text-white bg-primary-500 rounded-lg hover:bg-primary-600;
+  }
+  
+  .input-primary {
+    @apply px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+  
+  .card {
+    @apply p-4 bg-white rounded-lg shadow;
+  }
+} 
