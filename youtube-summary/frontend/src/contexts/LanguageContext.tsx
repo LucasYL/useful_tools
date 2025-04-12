@@ -15,7 +15,6 @@ const translations = {
     'detailedSummary': 'Detailed Summary',
     'language': 'Language',
     'transcript': 'Transcript',
-    'videoChapters': 'Video Chapters',
   },
   'zh': {
     'appTitle': 'YouTube视频摘要工具',
@@ -29,7 +28,6 @@ const translations = {
     'detailedSummary': '详细摘要',
     'language': '语言',
     'transcript': '字幕文本',
-    'videoChapters': '视频章节',
   }
 };
 

@@ -197,6 +197,35 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
         description = metadata.get("description", "")
         chapters = metadata.get("chapters", [])
         
+        # Calculate approximate video duration from transcript
+        # The transcript contains entries with start time and duration
+        transcript_duration = 0
+        try:
+            # Assuming 'text' is the full transcript joined together, but we need to extract timing information
+            # from the original transcript which should be available in transcript_entries
+            transcript_entries = []
+            if not isinstance(text, str):
+                # If text is the raw transcript list
+                transcript_entries = text
+            else:
+                # Try to parse from the JSON string if it's embedded
+                import re
+                import json
+                transcript_match = re.search(r'\[.*\]', text)
+                if transcript_match:
+                    try:
+                        transcript_entries = json.loads(transcript_match.group(0))
+                    except:
+                        pass
+                
+            if transcript_entries:
+                last_entry = transcript_entries[-1]
+                if isinstance(last_entry, dict) and 'start' in last_entry and 'duration' in last_entry:
+                    transcript_duration = last_entry['start'] + last_entry['duration']
+        except:
+            # Fallback to a reasonable default if we can't determine
+            transcript_duration = 3600  # 1 hour default
+            
         # Format chapters for the prompt if available
         chapters_text = ""
         if chapters:
@@ -204,6 +233,11 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
             for chapter in chapters:
                 time_formatted = f"{int(chapter['start_time'] // 60)}:{int(chapter['start_time'] % 60):02d}"
                 chapters_text += f"- {time_formatted}: {chapter['title']}\n"
+            
+            chapters_text += f"\nNOTE: The video duration is approximately {int(transcript_duration // 60)}:{int(transcript_duration % 60):02d}."
+        else:
+            # If there are no chapters, still inform about the video duration
+            chapters_text = f"NOTE: The video duration is approximately {int(transcript_duration // 60)}:{int(transcript_duration % 60):02d}."
         
         # Language instructions
         language_instructions = ""
@@ -228,7 +262,27 @@ Video description:
 
 {chapters_text}
 
-Please provide a concise summary of the following video transcript in 200 words or less, focusing on the main point and key takeaways.{language_instructions}""",
+Please create a concise summary of the video transcript. Your summary must:
+1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
+2. Divide the content into sections based on natural topic shifts in the transcript
+3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+4. Present timestamps in STRICT chronological order (from beginning to end)
+5. Adjust summary length based on video duration - use approximately 20-30 words per minute of video
+6. Focus on main points, keep explanations brief but comprehensive
+
+Example format:
+0:00 - Brief description of this section
+2:15 - Brief description of another section
+etc.
+
+IMPORTANT RULES:
+- Your summary MUST cover the complete video content in chronological order
+- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
+- Keep the total summary length proportional to video length (20-30 words per minute)
+- Never generate timestamps that exceed the video duration
+
+The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
             
             "detailed": f"""You are analyzing a YouTube video titled "{title}".
 
@@ -237,14 +291,32 @@ Video description:
 
 {chapters_text}
 
-Please provide a detailed summary of the following video transcript, including:
-1. Main points following the structure of the chapters when available
-2. Key arguments and supporting evidence
-3. Important data, facts, or examples mentioned
-4. Conclusions, recommendations, or calls to action
-5. The overall perspective or stance of the speaker
+Please provide a detailed summary of the video transcript. Your summary must:
+1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
+2. Organize the summary by natural content sections (topic changes in the transcript)
+3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+4. Present timestamps in STRICT chronological order (from beginning to end)
+5. Adjust summary length based on video duration - use approximately 40-70 words per minute of video
+6. Include specific details, examples, and insights from each section
 
-Your summary should be well-structured, comprehensive, and faithful to the original content.{language_instructions}"""
+Your summary should follow this format:
+0:00 - [Section Title]
+Detailed summary of this section's content...
+
+2:15 - [Section Title]
+Detailed summary of this section's content...
+
+etc.
+
+IMPORTANT RULES:
+- Your summary MUST cover the complete video content in chronological order
+- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
+- Keep the total summary length proportional to video length (40-70 words per minute)
+- Provide more details than the concise summary, but still focus on what's most important
+- Never generate timestamps that exceed the video duration
+
+The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }
     else:
         # Language instructions
@@ -263,25 +335,113 @@ Your summary should be well-structured, comprehensive, and faithful to the origi
             
         # Original prompts if no metadata is available
         prompts = {
-            "short": f"Please provide a concise summary of the following video transcript in 100 words or less.{language_instructions}",
-            "detailed": f"""
-            Please provide a detailed summary of the following video transcript, including:
-            1. Main points
-            2. Key arguments
-            3. Important data or facts
-            4. Conclusions or recommendations
-            {language_instructions}
-            """
+            "short": f"""Please create a concise summary of the video transcript. Your summary must:
+1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
+2. Divide the content into 3-5 sections based on natural topic shifts in the transcript
+3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+4. Present timestamps in STRICT chronological order (from beginning to end)
+5. Adjust summary length based on video duration - use approximately 20-30 words per minute of video
+6. Focus on main points, keep explanations brief but comprehensive
+
+Example format:
+0:00 - Brief description of this section
+2:15 - Brief description of another section
+etc.
+
+IMPORTANT RULES:
+- Your summary MUST cover the complete video content in chronological order
+- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
+- Keep the total summary length proportional to video length (20-30 words per minute)
+- Never introduce timestamps that exceed the video duration
+
+The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
+
+            "detailed": f"""Please provide a detailed summary of the video transcript. Your summary must:
+1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
+2. Organize the summary into 4-6 logical sections based on content shifts in the transcript
+3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+4. Present timestamps in STRICT chronological order (from beginning to end)
+5. Adjust summary length based on video duration - use approximately 40-70 words per minute of video
+6. Include specific details, examples, and insights from each section
+
+Your summary should follow this format:
+0:00 - [Section Title]
+Detailed summary of this section's content...
+
+2:15 - [Section Title]
+Detailed summary of this section's content...
+
+etc.
+
+IMPORTANT RULES:
+- Your summary MUST cover the complete video content in chronological order
+- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
+- Keep the total summary length proportional to video length (40-70 words per minute)
+- Provide more details than the concise summary, but still focus on what's most important
+- Never introduce timestamps that exceed the video duration
+
+The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }
     
     try:
+        # Determine if input is directly transcript or text
+        input_text = text
+        transcript_entries = []
+        
+        # Try to extract transcript entries for time information
+        if isinstance(text, list):
+            # If we received the raw transcript list
+            transcript_entries = text
+            input_text = " ".join([entry.get("text", "") for entry in text if isinstance(entry, dict) and "text" in entry])
+        else:
+            # Try to parse from the JSON string if it's embedded
+            import re
+            import json
+            transcript_match = re.search(r'\[.*\]', text)
+            if transcript_match:
+                try:
+                    transcript_entries = json.loads(transcript_match.group(0))
+                except:
+                    pass
+        
+        # If we have transcript entries, add time markers to help the model understand the timing
+        if transcript_entries and len(transcript_entries) > 10:
+            # For longer videos, add timestamp markers at regular intervals
+            time_enriched_text = ""
+            
+            # Determine appropriate interval based on total length
+            total_entries = len(transcript_entries)
+            if total_entries > 200:
+                interval = total_entries // 20  # About 20 markers for very long videos
+            elif total_entries > 100:
+                interval = total_entries // 15  # About 15 markers for long videos
+            elif total_entries > 50:
+                interval = total_entries // 10  # About 10 markers for medium videos
+            else:
+                interval = total_entries // 5   # About 5 markers for short videos
+            
+            # Add time markers
+            for i, entry in enumerate(transcript_entries):
+                if i % interval == 0 and 'start' in entry:
+                    minutes = int(entry['start'] // 60)
+                    seconds = int(entry['start'] % 60)
+                    time_marker = f"[TIME: {minutes}:{seconds:02d}] "
+                    time_enriched_text += time_marker
+                
+                time_enriched_text += entry.get('text', '') + " "
+            
+            # Use the enriched text with time markers
+            input_text = time_enriched_text
+        
         # Use OpenAI API to generate summary (synchronous version)
         client = OpenAI(api_key=openai_api_key)
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": prompts[summary_type]},
-                {"role": "user", "content": text}
+                {"role": "user", "content": input_text}
             ]
         )
         

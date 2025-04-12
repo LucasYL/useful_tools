@@ -6,7 +6,6 @@ import { SummaryDisplay } from '@/components/SummaryDisplay';
 import { SummaryTypeSelector } from '@/components/SummaryTypeSelector';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { VideoPlayer, TimelineViewer } from '@/components/VideoPlayer';
-import { VideoTimeline } from '@/components/VideoTimeline';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TranscriptEntry {
@@ -160,15 +159,6 @@ export default function Home() {
             videoId={summaryData.videoId} 
             onTimeUpdate={handleTimeUpdate}
           />
-          
-          {/* Video Chapters Timeline */}
-          {summaryData.chapters && summaryData.chapters.length > 0 && (
-            <VideoTimeline 
-              chapters={summaryData.chapters} 
-              onSeek={handleSeek}
-              currentTime={currentTime} 
-            />
-          )}
           
           {/* Summary */}
           <SummaryDisplay
