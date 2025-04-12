@@ -275,7 +275,8 @@ Example format:
 2:15 - Brief description of another section
 etc.
 
-IMPORTANT RULES:
+CRITICAL RULES:
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
 - Your summary MUST cover the complete video content in chronological order
 - Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
@@ -308,7 +309,8 @@ Detailed summary of this section's content...
 
 etc.
 
-IMPORTANT RULES:
+CRITICAL RULES:
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
 - Your summary MUST cover the complete video content in chronological order
 - Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
@@ -348,7 +350,8 @@ Example format:
 2:15 - Brief description of another section
 etc.
 
-IMPORTANT RULES:
+CRITICAL RULES:
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
 - Your summary MUST cover the complete video content in chronological order
 - Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
@@ -374,7 +377,8 @@ Detailed summary of this section's content...
 
 etc.
 
-IMPORTANT RULES:
+CRITICAL RULES:
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
 - Your summary MUST cover the complete video content in chronological order
 - Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
@@ -406,31 +410,42 @@ The goal is to create a well-structured, comprehensive summary that covers the e
                 except:
                     pass
         
+        # 计算视频实际总时长
+        video_duration = 0
+        if transcript_entries:
+            last_entry = transcript_entries[-1]
+            if isinstance(last_entry, dict) and 'start' in last_entry and 'duration' in last_entry:
+                video_duration = last_entry['start'] + last_entry['duration']
+                
+                # 在prompt中添加明确的视频实际时长
+                video_duration_text = f"\nIMPORTANT: The video's EXACT duration is {int(video_duration // 60)}:{int(video_duration % 60):02d}. DO NOT generate timestamps beyond this time."
+                
+                if "system_content" in prompts[summary_type]:
+                    prompts[summary_type]["system_content"] += video_duration_text
+                else:
+                    # 直接拼接到现有提示中
+                    prompts[summary_type] += video_duration_text
+        
         # If we have transcript entries, add time markers to help the model understand the timing
-        if transcript_entries and len(transcript_entries) > 10:
-            # For longer videos, add timestamp markers at regular intervals
+        if transcript_entries and len(transcript_entries) > 5:
+            # For videos, add frequent timestamp markers
             time_enriched_text = ""
             
-            # Determine appropriate interval based on total length
-            total_entries = len(transcript_entries)
-            if total_entries > 200:
-                interval = total_entries // 20  # About 20 markers for very long videos
-            elif total_entries > 100:
-                interval = total_entries // 15  # About 15 markers for long videos
-            elif total_entries > 50:
-                interval = total_entries // 10  # About 10 markers for medium videos
-            else:
-                interval = total_entries // 5   # About 5 markers for short videos
-            
-            # Add time markers
+            # 更频繁地添加时间标记，确保约每15秒有一个
+            last_time = -15  # 初始化为负值，确保第一个条目会添加时间标记
             for i, entry in enumerate(transcript_entries):
-                if i % interval == 0 and 'start' in entry:
+                if 'start' in entry and entry['start'] - last_time >= 15:
                     minutes = int(entry['start'] // 60)
                     seconds = int(entry['start'] % 60)
-                    time_marker = f"[TIME: {minutes}:{seconds:02d}] "
+                    time_marker = f"[TIMESTAMP: {minutes}:{seconds:02d}] "
                     time_enriched_text += time_marker
+                    last_time = entry['start']
                 
                 time_enriched_text += entry.get('text', '') + " "
+            
+            # 确保最后一个时间戳正确
+            if video_duration > 0:
+                time_enriched_text += f" [TIMESTAMP: {int(video_duration // 60)}:{int(video_duration % 60):02d}] End of video."
             
             # Use the enriched text with time markers
             input_text = time_enriched_text
