@@ -21,83 +21,206 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
   const [isAPIReady, setIsAPIReady] = useState(false);
   const playerDivRef = useRef<HTMLDivElement>(null);
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
+  const [apiLoadTimeout, setApiLoadTimeout] = useState(false);
+  const { t } = useLanguage();
 
-  // Load YouTube API
+  // Load YouTube API with timeout
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     // If script is already there, don't add it again
     if (document.getElementById('youtube-api')) {
       if (window.YT && window.YT.Player) {
         setIsAPIReady(true);
+        return;
       }
-      return;
     }
 
+    // Set timeout to detect API loading failures
+    timeoutId = setTimeout(() => {
+      if (!window.YT || !window.YT.Player) {
+        console.error("YouTube API failed to load within timeout");
+        setApiLoadTimeout(true);
+      }
+    }, 8000); // 8 seconds timeout
+    
     // Create script element
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     tag.id = 'youtube-api';
+    tag.onerror = () => {
+      console.error("Failed to load YouTube API script");
+      setApiLoadTimeout(true);
+      clearTimeout(timeoutId);
+    };
+    
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
     // Define callback
     window.onYouTubeIframeAPIReady = () => {
       setIsAPIReady(true);
+      clearTimeout(timeoutId);
     };
 
     // Cleanup
     return () => {
+      clearTimeout(timeoutId);
       // Can't remove script tag because it might be used by other components
       window.onYouTubeIframeAPIReady = () => {};
     };
   }, []);
 
-  // Initialize player when API is ready
+  // Initialize player when API is ready with timeout
   useEffect(() => {
-    if (!isAPIReady || !videoId || !playerDivRef.current) return;
+    if ((!isAPIReady && !apiLoadTimeout) || !videoId) return;
+    
+    if (apiLoadTimeout) {
+      setPlayerError("YouTube player could not be loaded. Please try again later or watch directly on YouTube.");
+      return;
+    }
+    
+    if (!playerDivRef.current) {
+      setPlayerError("Player container not found");
+      return;
+    }
 
-    playerRef.current = new window.YT.Player(playerDivRef.current, {
-      videoId: videoId,
-      height: '360',
-      width: '640',
-      playerVars: {
-        autoplay: 0,
-        rel: 0,
-        modestbranding: 1,
-      },
-      events: {
-        onStateChange: (event: any) => {
-          // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
-          if (event.data === 1 && onTimeUpdate) { // Playing
-            // Create interval to track playback time
-            if (timeUpdateIntervalRef.current === null) {
-              timeUpdateIntervalRef.current = setInterval(() => {
-                const currentTime = playerRef.current.getCurrentTime();
-                onTimeUpdate(currentTime);
-              }, 500); // Update every 500ms
+    // Reset player state when creating a new player
+    setIsPlayerReady(false);
+    setPlayerError(null);
+    
+    // Set timeout for player initialization
+    const playerInitTimeout = setTimeout(() => {
+      if (!isPlayerReady) {
+        setPlayerError("Player initialization timed out. Try watching directly on YouTube.");
+      }
+    }, 10000); // 10 seconds timeout
+
+    try {
+      // Make sure we have a fresh div for the player
+      const playerContainer = playerDivRef.current;
+      while (playerContainer.firstChild) {
+        playerContainer.removeChild(playerContainer.firstChild);
+      }
+      
+      playerRef.current = new window.YT.Player(playerContainer, {
+        videoId: videoId,
+        height: '360',
+        width: '640',
+        playerVars: {
+          autoplay: 0,
+          rel: 0,
+          modestbranding: 1,
+          origin: window.location.origin,
+        },
+        events: {
+          onReady: () => {
+            console.log("YouTube player ready");
+            setIsPlayerReady(true);
+            clearTimeout(playerInitTimeout);
+          },
+          onError: (event: any) => {
+            console.error("YouTube player error:", event.data);
+            let errorMessage = "An error occurred while loading the video.";
+            
+            // Map YouTube error codes to more specific messages
+            switch(event.data) {
+              case 2:
+                errorMessage = "Invalid video ID or parameter.";
+                break;
+              case 5:
+                errorMessage = "HTML5 player error.";
+                break;
+              case 100:
+                errorMessage = "Video not found or has been removed.";
+                break;
+              case 101:
+              case 150:
+                errorMessage = "Video owner does not allow embedding.";
+                break;
             }
-          } else if (event.data !== 1 && timeUpdateIntervalRef.current !== null) {
-            // If not playing, clear the interval
-            clearInterval(timeUpdateIntervalRef.current);
-            timeUpdateIntervalRef.current = null;
+            
+            setPlayerError(errorMessage);
+            clearTimeout(playerInitTimeout);
+          },
+          onStateChange: (event: any) => {
+            // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            if (event.data === 1 && onTimeUpdate) { // Playing
+              // Create interval to track playback time
+              if (timeUpdateIntervalRef.current === null) {
+                timeUpdateIntervalRef.current = setInterval(() => {
+                  if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+                    const currentTime = playerRef.current.getCurrentTime();
+                    onTimeUpdate(currentTime);
+                  }
+                }, 500); // Update every 500ms
+              }
+            } else if (event.data !== 1 && timeUpdateIntervalRef.current !== null) {
+              // If not playing, clear the interval
+              clearInterval(timeUpdateIntervalRef.current);
+              timeUpdateIntervalRef.current = null;
+            }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error("Error initializing YouTube player:", error);
+      setPlayerError("Could not initialize video player");
+      clearTimeout(playerInitTimeout);
+    }
 
     return () => {
+      clearTimeout(playerInitTimeout);
       if (timeUpdateIntervalRef.current) {
         clearInterval(timeUpdateIntervalRef.current);
         timeUpdateIntervalRef.current = null;
       }
-      if (playerRef.current) {
-        playerRef.current.destroy();
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        try {
+          playerRef.current.destroy();
+        } catch (error) {
+          console.error("Error destroying player:", error);
+        }
       }
     };
-  }, [isAPIReady, videoId, onTimeUpdate]);
+  }, [isAPIReady, apiLoadTimeout, videoId, onTimeUpdate, isPlayerReady]);
 
   return (
-    <div className="flex justify-center mt-8">
-      <div ref={playerDivRef} id="youtube-player" />
+    <div className="flex flex-col items-center mt-8">
+      <h2 className="mb-4 text-xl font-bold">视频</h2>
+      
+      {/* Loading state */}
+      {!isPlayerReady && !playerError && (
+        <div className="w-[640px] h-[360px] bg-gray-100 flex items-center justify-center">
+          <div className="flex flex-col items-center text-gray-600">
+            <p className="mb-4">加载视频播放器中...</p>
+            <p className="text-sm">如果视频无法加载，您可以<a href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">直接在YouTube上观看</a></p>
+          </div>
+        </div>
+      )}
+      
+      {/* Error state */}
+      {playerError && (
+        <div className="w-[640px] h-[360px] bg-red-50 flex items-center justify-center">
+          <div className="text-red-600 text-center p-4">
+            <p className="font-bold mb-2">无法加载视频</p>
+            <p className="mb-4">{playerError}</p>
+            <a 
+              href={`https://www.youtube.com/watch?v=${videoId}`} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            >
+              在YouTube上观看
+            </a>
+          </div>
+        </div>
+      )}
+      
+      {/* YouTube iframe will be inserted here */}
+      <div ref={playerDivRef} id="youtube-player" className="w-[640px] h-[360px]" />
     </div>
   );
 }
