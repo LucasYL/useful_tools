@@ -27,7 +27,9 @@ const translations = {
     'transcriptUnavailable': 'Transcript data unavailable',
     'showTranscript': 'Show Transcript',
     'hideTranscript': 'Hide Transcript',
-    'pasteYoutubeUrl': 'Paste a YouTube video URL to generate a summary'
+    'pasteYoutubeUrl': 'Paste a YouTube video URL to generate a summary',
+    'playerLoadingTimeout': 'Player is taking longer than expected to load',
+    'retryLoading': 'Retry Loading'
   },
   'zh': {
     'appTitle': 'YouTube视频摘要工具',
@@ -53,7 +55,9 @@ const translations = {
     'transcriptUnavailable': '字幕数据不可用',
     'showTranscript': '显示字幕',
     'hideTranscript': '隐藏字幕',
-    'pasteYoutubeUrl': '粘贴YouTube视频网址以生成摘要'
+    'pasteYoutubeUrl': '粘贴YouTube视频网址以生成摘要',
+    'playerLoadingTimeout': '播放器加载时间超过预期',
+    'retryLoading': '重试加载'
   }
 };
 

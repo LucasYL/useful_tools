@@ -272,7 +272,35 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
                 "ko": "Korean (한국어)",
             }
             target_language = language_map.get(language, language)
-            language_instructions = f"\nPlease provide your response in {target_language}."
+            # 针对不同语言的特殊指导
+            if language == "zh":
+                # 中文需要更多字符才能表达同等内容
+                language_instructions = f"""
+\nPlease provide your response in {target_language}.
+
+LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
+- Chinese summaries MUST be comprehensive and detailed
+- Minimum length requirements for Chinese:
+  * For 10-minute videos: at least 600-800 characters
+  * For 30-minute videos: at least 1500-1800 characters
+  * For 60-minute videos: at least 3000-3600 characters
+- Use at least 60-100 Chinese characters per minute of video for detailed summaries
+- Include specific quotes and details from the video
+- DO NOT make the summary too short - utilize the full context window
+- If the video discusses complex topics, provide even more detailed explanations
+"""
+            else:
+                language_instructions = f"\nPlease provide your response in {target_language}."
+        else:
+            # 英文特殊指导
+            language_instructions = """
+ENGLISH-SPECIFIC INSTRUCTIONS:
+- English summaries must be comprehensive and detailed
+- For videos under 60 minutes, use the higher end of the word count range
+- Include specific quotes and details from the video
+- DO NOT make the summary too short - utilize the full context window
+- If the video discusses complex topics, provide even more detailed explanations
+"""
         
         # Add format note to instructions
         if format_note:
@@ -295,10 +323,12 @@ Please create a concise summary of the video transcript. Your summary must:
 2. Divide the content into sections based on natural topic shifts in the transcript
 3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
 4. Present timestamps in STRICT chronological order (from beginning to end)
-5. For videos under 60 minutes, provide more detailed coverage with appropriate length for the language:
-   - For English: 20-30 words per minute of video
-   - For Chinese: 30-50 characters per minute of video
-   - For other languages: adjust accordingly to ensure comprehensive coverage
+5. LENGTH REQUIREMENT (CRITICAL):
+   - For videos under 10 minutes: 40-60 words/characters per minute of video
+   - For videos 10-30 minutes: 30-50 words/characters per minute (minimum 400 words total)
+   - For videos 30-60 minutes: 25-40 words/characters per minute (minimum 900 words total)
+   - For videos over 60 minutes: 20-30 words/characters per minute (minimum 1800 words total)
+   - For Chinese content: character counts should be 1.5-2x the above word counts
 6. Focus on main points, keep explanations brief but comprehensive
 
 Example format:
@@ -312,7 +342,7 @@ CRITICAL RULES:
 - For videos without chapters, identify natural topic shifts in the transcript and use the timestamps at those points.
 - Your summary MUST cover the complete video content in chronological order.
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts.
-- For shorter videos (under 60 minutes), provide more detailed coverage of key concepts.
+- YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
 - Never generate timestamps that exceed the video duration.
 
 The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
@@ -329,10 +359,12 @@ Please provide a detailed summary of the video transcript. Your summary must:
 2. Organize the summary by natural content sections (topic changes in the transcript)
 3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
 4. Present timestamps in STRICT chronological order (from beginning to end)
-5. For videos under 60 minutes, provide more detailed coverage with appropriate length for the language:
-   - For English: 40-70 words per minute of video
-   - For Chinese: 50-90 characters per minute of video 
-   - For other languages: adjust accordingly to ensure comprehensive coverage
+5. LENGTH REQUIREMENT (CRITICAL):
+   - For videos under 10 minutes: 80-120 words/characters per minute of video
+   - For videos 10-30 minutes: 60-90 words/characters per minute (minimum 800 words total)
+   - For videos 30-60 minutes: 50-70 words/characters per minute (minimum 1800 words total)
+   - For videos over 60 minutes: 40-60 words/characters per minute (minimum 3000 words total)
+   - For Chinese content: character counts should be 1.5-2x the above word counts
 6. Include specific details, examples, and insights from each section
 
 Your summary should follow this format:
@@ -350,8 +382,8 @@ CRITICAL RULES:
 - For videos without chapters, identify natural topic shifts in the transcript and use the timestamps at those points.
 - Your summary MUST cover the complete video content in chronological order.
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts.
-- For shorter videos (under 60 minutes), provide more thorough analysis of the content.
-- Provide more details than the concise summary, including examples and key insights.
+- YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
+- Include concrete details, quotes, examples and specific points from the video.
 - Never generate timestamps that exceed the video duration.
 
 The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
@@ -369,7 +401,25 @@ The goal is to create a well-structured, comprehensive summary that covers the e
                 "ko": "Korean (한국어)",
             }
             target_language = language_map.get(language, language)
-            language_instructions = f"\nPlease provide your response in {target_language}."
+            # 针对不同语言的特殊指导
+            if language == "zh":
+                # 中文需要更多字符才能表达同等内容
+                language_instructions = f"""
+\nPlease provide your response in {target_language}.
+
+LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
+- Chinese summaries MUST be comprehensive and detailed
+- Minimum length requirements for Chinese:
+  * For 10-minute videos: at least 600-800 characters
+  * For 30-minute videos: at least 1500-1800 characters
+  * For 60-minute videos: at least 3000-3600 characters
+- Use at least 60-100 Chinese characters per minute of video for detailed summaries
+- Include specific quotes and details from the video
+- DO NOT make the summary too short - utilize the full context window
+- If the video discusses complex topics, provide even more detailed explanations
+"""
+            else:
+                language_instructions = f"\nPlease provide your response in {target_language}."
             
         # Add format note to instructions
         if format_note:
@@ -433,15 +483,54 @@ The goal is to create a well-structured, comprehensive summary that covers the e
         }
     
     try:
-        # Determine if input is directly transcript or text
-        input_text = text
-        
         # Calculate video duration directly from the text if possible
         match = re.search(r'\[(\d+:\d+)\]\s*End of video', text)
         if match:
             video_duration_str = match.group(1)
             # Add video duration to prompt
             video_duration_text = f"\nIMPORTANT: The video's EXACT duration is {video_duration_str}. DO NOT generate timestamps beyond this time."
+            
+            # Extract minutes and seconds for calculating expected output length
+            duration_parts = video_duration_str.split(':')
+            if len(duration_parts) == 2:
+                minutes = int(duration_parts[0])
+                seconds = int(duration_parts[1])
+                total_minutes = minutes + seconds/60
+                
+                # Add expected length guidance based on video duration
+                if summary_type == "detailed":
+                    expected_words = 0
+                    if total_minutes <= 10:
+                        expected_words = int(total_minutes * 100)
+                    elif total_minutes <= 30:
+                        expected_words = int(10 * 100 + (total_minutes - 10) * 75)
+                    elif total_minutes <= 60:
+                        expected_words = int(10 * 100 + 20 * 75 + (total_minutes - 30) * 60)
+                    else:
+                        expected_words = int(10 * 100 + 20 * 75 + 30 * 60 + (total_minutes - 60) * 50)
+                    
+                    if language == "zh":
+                        expected_words = int(expected_words * 1.7)  # 中文字符需要更多
+                    
+                    length_guidance = f"\nYour summary should be approximately {expected_words} words/characters in length to adequately cover this {int(total_minutes)}-minute video."
+                else:
+                    expected_words = 0
+                    if total_minutes <= 10:
+                        expected_words = int(total_minutes * 50)
+                    elif total_minutes <= 30:
+                        expected_words = int(10 * 50 + (total_minutes - 10) * 40)
+                    elif total_minutes <= 60:
+                        expected_words = int(10 * 50 + 20 * 40 + (total_minutes - 30) * 35)
+                    else:
+                        expected_words = int(10 * 50 + 20 * 40 + 30 * 35 + (total_minutes - 60) * 25)
+                    
+                    if language == "zh":
+                        expected_words = int(expected_words * 1.7)  # 中文字符需要更多
+                    
+                    length_guidance = f"\nYour summary should be approximately {expected_words} words/characters in length to adequately cover this {int(total_minutes)}-minute video."
+                
+                # Add length guidance to prompts
+                video_duration_text += length_guidance
             
             for summary_type_key in prompts:
                 if isinstance(prompts[summary_type_key], dict) and "system_content" in prompts[summary_type_key]:
@@ -479,8 +568,10 @@ The goal is to create a well-structured, comprehensive summary that covers the e
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": prompts[summary_type]},
-                {"role": "user", "content": input_text}
-            ]
+                {"role": "user", "content": text}
+            ],
+            max_tokens=4000,  # 使用最大输出长度
+            temperature=0.7   # 增加多样性，鼓励更详细的输出
         )
         
         return response.choices[0].message.content

@@ -11,18 +11,46 @@ interface VideoPlayerProps {
 export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [playerError, setPlayerError] = useState<string | null>(null);
+  const [loadTimeout, setLoadTimeout] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { t } = useLanguage();
 
+  // 初始化YouTube Player API
+  useEffect(() => {
+    // 创建YouTube API脚本
+    if (!document.getElementById('youtube-api')) {
+      const tag = document.createElement('script');
+      tag.id = 'youtube-api';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    }
+    
+    // Reset states when video ID changes
+    setIsPlayerReady(false);
+    setPlayerError(null);
+    setLoadTimeout(false);
+    
+    return () => {
+      if (playerCheckIntervalRef.current) {
+        clearInterval(playerCheckIntervalRef.current);
+        playerCheckIntervalRef.current = null;
+      }
+    };
+  }, [videoId]);
+
   // Listen for messages from iframe
   useEffect(() => {
+    if (!videoId) return;
+    
     const handleMessage = (event: MessageEvent) => {
-      // Only process messages from YouTube
+      // Process messages from YouTube
       if (event.origin !== 'https://www.youtube.com') return;
       
       try {
-        const data = JSON.parse(event.data);
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        
         // Check if it's a YouTube API event
         if (data.event === 'onStateChange' && data.info === 1 && onTimeUpdate) {
           // Playback state changed to playing
@@ -41,6 +69,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
           }
         } else if (data.event === 'onReady') {
           setIsPlayerReady(true);
+          setLoadTimeout(false);
         } else if (data.event === 'onError') {
           setPlayerError(t('videoLoadError'));
         } else if (data.event === 'infoDelivery' && data.info && typeof data.info.currentTime === 'number') {
@@ -56,26 +85,23 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
 
     window.addEventListener('message', handleMessage);
     
+    // 设置超时检测
+    const timeoutId = setTimeout(() => {
+      if (!isPlayerReady) {
+        console.warn('YouTube player failed to load within timeout');
+        setLoadTimeout(true);
+      }
+    }, 10000);
+    
     return () => {
       window.removeEventListener('message', handleMessage);
+      clearTimeout(timeoutId);
       if (playerCheckIntervalRef.current) {
         clearInterval(playerCheckIntervalRef.current);
         playerCheckIntervalRef.current = null;
       }
     };
-  }, [videoId, onTimeUpdate, t]);
-
-  // Handle loading timeout
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (!isPlayerReady) {
-        console.warn('YouTube player failed to load within timeout');
-        // Don't set error, continue trying to load video
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeoutId);
-  }, [isPlayerReady]);
+  }, [videoId, onTimeUpdate, t, isPlayerReady]);
 
   // Error handling
   useEffect(() => {
@@ -85,6 +111,20 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       setPlayerError(null);
     }
   }, [videoId, t]);
+
+  // 手动强制加载视频
+  const handleRetryLoad = () => {
+    if (!videoId || !iframeRef.current || !iframeRef.current.contentWindow) return;
+    
+    // 重新加载iframe
+    const currentSrc = iframeRef.current.src;
+    iframeRef.current.src = '';
+    setTimeout(() => {
+      if (iframeRef.current) {
+        iframeRef.current.src = currentSrc;
+      }
+    }, 100);
+  };
 
   // Embed video using iframe
   return (
@@ -107,6 +147,19 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
           <div className="flex flex-col items-center text-neutral-500 p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-300 mb-4"></div>
             <p className="font-medium mb-2">{t('loadingPlayer')}</p>
+            {loadTimeout && (
+              <>
+                <p className="text-sm text-amber-600 mb-3">
+                  {t('playerLoadingTimeout')}
+                </p>
+                <button 
+                  onClick={handleRetryLoad}
+                  className="px-4 py-2 bg-neutral-200 text-neutral-700 rounded-full hover:bg-neutral-300 transition-colors mb-3 text-sm font-medium"
+                >
+                  {t('retryLoading')}
+                </button>
+              </>
+            )}
             <p className="text-sm">
               {t('videoLoadingFallback')}
               <a 
@@ -148,7 +201,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
             ref={iframeRef}
             width="100%" 
             height="100%" 
-            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`}
+            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}&rel=0&modestbranding=1&fs=1`}
             title="YouTube video player" 
             frameBorder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -204,24 +257,53 @@ export function TimelineViewer({ transcript, videoId, onSeek }: TimelineViewerPr
   // Use useEffect to track current playback time updates
   useEffect(() => {
     // Listen for video playback update messages
-    const handleTimeUpdate = (event: MessageEvent) => {
-      if (event.origin !== 'https://www.youtube.com') return;
-      
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === 'infoDelivery' && data.info && typeof data.info.currentTime === 'number') {
-          setCurrentPlaybackTime(data.info.currentTime);
-        }
-      } catch (e) {
-        // Ignore non-JSON messages
-      }
+    const handleTimeUpdate = (time: number) => {
+      setCurrentPlaybackTime(time);
     };
     
-    window.addEventListener('message', handleTimeUpdate);
+    // Auto-scroll to the currently playing segment
+    if (containerRef.current && transcript.length > 0) {
+      const currentEntry = transcript.find(
+        entry => currentPlaybackTime >= entry.start && 
+                currentPlaybackTime < (entry.start + entry.duration)
+      );
+      
+      if (currentEntry) {
+        const entryElement = containerRef.current.querySelector(
+          `[data-start="${currentEntry.start}"]`
+        ) as HTMLElement;
+        
+        if (entryElement) {
+          entryElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest'
+          });
+        }
+      }
+    }
+    
+    // Add listener for time updates from the VideoPlayer component
+    if (onSeek) {
+      window.addEventListener('message', (event) => {
+        if (event.origin !== 'https://www.youtube.com') return;
+        
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'infoDelivery' && data.info && typeof data.info.currentTime === 'number') {
+            handleTimeUpdate(data.info.currentTime);
+          }
+        } catch (e) {
+          // Ignore non-JSON messages
+        }
+      });
+    }
+    
     return () => {
-      window.removeEventListener('message', handleTimeUpdate);
+      if (onSeek) {
+        window.removeEventListener('message', () => {});
+      }
     };
-  }, []);
+  }, [currentPlaybackTime, transcript, onSeek]);
 
   return (
     <div>
