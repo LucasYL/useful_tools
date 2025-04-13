@@ -88,25 +88,32 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
 
   // Embed video using iframe
   return (
-    <div className="flex flex-col items-center mt-8">
-      <h2 className="mb-4 text-xl font-bold">{t('video')}</h2>
+    <div className="flex flex-col">
+      <h2 className="text-xl font-semibold mb-4">{t('video')}</h2>
       
       {!videoId && (
-        <div className="w-[640px] h-[360px] bg-gray-100 flex items-center justify-center">
-          <div className="text-gray-600">{t('noVideoId')}</div>
+        <div className="aspect-video w-full rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden">
+          <div className="text-neutral-500 p-8 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <p>{t('noVideoId')}</p>
+          </div>
         </div>
       )}
       
       {videoId && !isPlayerReady && !playerError && (
-        <div className="w-[640px] h-[360px] bg-gray-100 flex items-center justify-center">
-          <div className="flex flex-col items-center text-gray-600">
-            <p className="mb-4">{t('loadingPlayer')}</p>
-            <p className="text-sm">{t('videoLoadingFallback')}
+        <div className="aspect-video w-full rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden">
+          <div className="flex flex-col items-center text-neutral-500 p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-300 mb-4"></div>
+            <p className="font-medium mb-2">{t('loadingPlayer')}</p>
+            <p className="text-sm">
+              {t('videoLoadingFallback')}
               <a 
                 href={`https://www.youtube.com/watch?v=${videoId}`} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-blue-500 underline ml-1"
+                className="text-blue-500 hover:underline ml-1"
               >
                 {t('watchOnYouTube')}
               </a>
@@ -116,15 +123,18 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       )}
       
       {playerError && (
-        <div className="w-[640px] h-[360px] bg-red-50 flex items-center justify-center">
-          <div className="text-red-600 text-center p-4">
-            <p className="font-bold mb-2">{t('videoLoadError')}</p>
-            <p className="mb-4">{playerError}</p>
+        <div className="aspect-video w-full rounded-xl bg-red-50 flex items-center justify-center overflow-hidden">
+          <div className="text-red-500 p-8 text-center max-w-md">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="font-medium mb-2">{t('videoLoadError')}</p>
+            <p className="mb-4 text-sm">{playerError}</p>
             <a 
               href={`https://www.youtube.com/watch?v=${videoId}`} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              className="inline-block px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm font-medium text-sm"
             >
               {t('watchOnYouTube')}
             </a>
@@ -133,25 +143,26 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       )}
       
       {videoId && (
-        <iframe 
-          ref={iframeRef}
-          width="640" 
-          height="360" 
-          src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`}
-          title="YouTube video player" 
-          frameBorder="0" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className={!isPlayerReady && playerError === null ? 'hidden' : ''}
-          onLoad={() => {
-            // iframe load completion doesn't mean player is ready, so we still need to wait for onReady message
-            setTimeout(() => {
-              if (!isPlayerReady) {
-                setIsPlayerReady(true); // If onReady message not received after 3 seconds, force display
-              }
-            }, 3000);
-          }}
-        ></iframe>
+        <div className={`aspect-video w-full rounded-xl overflow-hidden bg-black shadow-sm ${!isPlayerReady && playerError === null ? 'hidden' : ''}`}>
+          <iframe 
+            ref={iframeRef}
+            width="100%" 
+            height="100%" 
+            src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`}
+            title="YouTube video player" 
+            frameBorder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            onLoad={() => {
+              // iframe load completion doesn't mean player is ready, so we still need to wait for onReady message
+              setTimeout(() => {
+                if (!isPlayerReady) {
+                  setIsPlayerReady(true); // If onReady message not received after 3 seconds, force display
+                }
+              }, 3000);
+            }}
+          ></iframe>
+        </div>
       )}
     </div>
   );
@@ -213,12 +224,12 @@ export function TimelineViewer({ transcript, videoId, onSeek }: TimelineViewerPr
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <h2 className="mb-4 text-xl font-bold">{t('transcript')}</h2>
+    <div>
+      <h3 className="text-lg font-medium mb-3">{t('transcript')}</h3>
       {transcript && transcript.length > 0 ? (
         <div 
           ref={containerRef}
-          className="p-4 bg-white rounded-lg shadow max-h-96 overflow-y-auto"
+          className="p-4 bg-white rounded-xl border border-neutral-200 shadow-sm max-h-96 overflow-y-auto"
         >
           {transcript.map((entry, index) => {
             // Check if this is the currently playing segment
@@ -228,24 +239,24 @@ export function TimelineViewer({ transcript, videoId, onSeek }: TimelineViewerPr
             return (
               <div 
                 key={index} 
-                className={`mb-2 p-2 border-l-4 transcript-entry hover:bg-gray-50 cursor-pointer transition duration-200 ${
-                  isCurrentlyPlaying ? 'border-blue-500 bg-blue-50' : 'border-transparent'
+                className={`mb-2 p-2 border-l-2 transcript-entry hover:bg-neutral-50 cursor-pointer transition duration-200 ${
+                  isCurrentlyPlaying ? 'border-black bg-neutral-100' : 'border-transparent'
                 }`}
                 onClick={() => seekTo(entry.start)}
                 data-start={entry.start}
               >
-                <span className={`font-mono ${
-                  isCurrentlyPlaying ? 'text-blue-600 font-bold' : 'text-gray-500'
+                <span className={`font-mono text-sm ${
+                  isCurrentlyPlaying ? 'text-black font-medium' : 'text-neutral-500'
                 }`}>
                   {formatTime(entry.start)}
                 </span>
-                <p className={isCurrentlyPlaying ? 'font-medium' : ''}>{entry.text}</p>
+                <p className={`text-sm ${isCurrentlyPlaying ? 'font-medium text-black' : 'text-neutral-700'}`}>{entry.text}</p>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="p-4 bg-gray-100 text-gray-600 rounded-lg text-center">
+        <div className="p-4 bg-neutral-100 text-neutral-500 rounded-xl text-center text-sm border border-neutral-200">
           {t('transcriptUnavailable')}
         </div>
       )}

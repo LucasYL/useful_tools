@@ -51,7 +51,7 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
         // This is regular text or paragraph heading
         if (parts[i].trim()) {
           elements.push(
-            <p key={`text-${i}`} className="mb-4">
+            <p key={`text-${i}`} className="mb-4 text-neutral-700">
               {parts[i]}
             </p>
           );
@@ -66,19 +66,19 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
             <div className="flex items-center mb-2">
               <button
                 onClick={() => handleTimestampClick(timestamp)}
-                className="bg-indigo-100 text-indigo-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded hover:bg-indigo-200 transition-colors flex items-center cursor-pointer"
+                className="bg-neutral-100 text-neutral-700 text-sm font-medium mr-2 px-2.5 py-1 rounded-full hover:bg-neutral-200 transition-colors flex items-center cursor-pointer"
                 title={t('timestampJumpTooltip')}
               >
                 <span className="mr-1">▶</span>
                 {timestamp}
               </button>
-              <h4 className="font-semibold">
+              <h4 className="font-semibold text-neutral-900">
                 {content.split('\n')[0]?.trim()}
               </h4>
             </div>
-            <div className="pl-4 border-l-2 border-indigo-100">
+            <div className="pl-4 border-l-2 border-neutral-200">
               {content.split('\n').slice(1).map((line, lineIndex) => (
-                <p key={`line-${i}-${lineIndex}`} className="mb-2">
+                <p key={`line-${i}-${lineIndex}`} className="mb-2 text-neutral-700">
                   {line}
                 </p>
               ))}
@@ -96,18 +96,29 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
   };
   
   return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <div className="p-4 bg-white rounded-lg shadow">
-        <h2 className="mb-4 text-xl font-bold">
-          {summaryType === 'detailed' ? t('detailedSummary') : t('shortSummary')}
-        </h2>
-        <h3 className="mb-4 text-lg font-semibold text-gray-700">{title}</h3>
-        <div className="mb-2 text-sm text-gray-500">
-          {videoId && onSeek ? (
-            <p>{t('clickTimestampToJump')}</p>
-          ) : null}
+    <div className="h-full overflow-y-auto pr-4 -mr-4">
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 mb-4">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+              {summaryType === 'detailed' ? t('detailedSummary') : t('shortSummary')}
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">{title}</h2>
+          </div>
         </div>
-        {formatSummary(summary)}
+        
+        {videoId && onSeek && (
+          <div className="mb-4 flex items-center text-xs text-neutral-500 bg-neutral-50 p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span>{t('clickTimestampToJump')}</span>
+          </div>
+        )}
+        
+        <div className="prose prose-neutral max-w-none">
+          {formatSummary(summary)}
+        </div>
       </div>
     </div>
   );

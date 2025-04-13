@@ -35,6 +35,7 @@ export default function Home() {
   const [summaryType, setSummaryType] = useState<string>('short');
   const { language, setLanguage, t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(0);
+  const [showTranscript, setShowTranscript] = useState(false);
 
   const handleSubmit = async (url: string) => {
     setLoading(true);
@@ -117,65 +118,101 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gray-50">
-      <h1 className="mb-8 text-3xl font-bold text-center text-gray-800">
-        {t('appTitle')}
-      </h1>
-      
-      <VideoInput onSubmit={handleSubmit} isLoading={loading} />
-      
-      <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <SummaryTypeSelector 
-          selectedType={summaryType as any} 
-          onChange={setSummaryType} 
-          disabled={loading} 
-        />
-        
-        <LanguageSelector 
-          selectedLanguage={language} 
-          onChange={handleLanguageChange} 
-          disabled={loading}
-        />
-      </div>
+    <main className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
+      {/* Header with glass effect */}
+      <header className="sticky top-0 z-10 backdrop-blur-md bg-neutral-50/80 border-b border-neutral-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <h1 className="text-2xl font-semibold text-center">
+            {t('appTitle')}
+          </h1>
+        </div>
+      </header>
+
+      {/* Input Section */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+          <VideoInput onSubmit={handleSubmit} isLoading={loading} />
+          
+          <div className="mt-4 flex flex-wrap gap-4 justify-center">
+            <SummaryTypeSelector 
+              selectedType={summaryType as any} 
+              onChange={setSummaryType} 
+              disabled={loading} 
+            />
+            
+            <LanguageSelector 
+              selectedLanguage={language} 
+              onChange={handleLanguageChange} 
+              disabled={loading}
+            />
+          </div>
+        </div>
+      </section>
       
       {loading && (
-        <div className="mt-8 text-center">
-          <p className="text-lg">{t('processing')}</p>
-          <p className="text-sm text-gray-500">{t('processingNote')}</p>
+        <div className="max-w-md mx-auto mt-8 px-4 text-center">
+          <div className="animate-pulse">
+            <div className="h-2.5 bg-neutral-300 rounded-full w-48 mb-4 mx-auto"></div>
+            <div className="h-2 bg-neutral-300 rounded-full max-w-[360px] mb-2.5 mx-auto"></div>
+            <div className="h-2 bg-neutral-300 rounded-full mb-2.5 mx-auto"></div>
+          </div>
+          <p className="mt-4 text-lg font-medium text-neutral-800">{t('processing')}</p>
+          <p className="text-sm text-neutral-500">{t('processingNote')}</p>
         </div>
       )}
       
       {error && (
-        <div className="p-4 mt-8 text-center text-red-500 bg-red-50 rounded-lg">
-          <p className="font-semibold">{t('error')}</p>
-          <p>{error}</p>
+        <div className="max-w-md mx-auto mt-8 px-4">
+          <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-center">
+            <p className="font-medium text-red-800">{t('error')}</p>
+            <p className="text-red-700">{error}</p>
+          </div>
         </div>
       )}
       
       {summaryData && !loading && (
-        <>
-          {/* Video Player */}
-          <VideoPlayer 
-            videoId={summaryData.videoId} 
-            onTimeUpdate={handleTimeUpdate}
-          />
-          
-          {/* Summary */}
-          <SummaryDisplay
-            summary={summaryData.summary}
-            title={summaryData.title}
-            summaryType={summaryType}
-            videoId={summaryData.videoId}
-            onSeek={handleSeek}
-          />
-          
-          {/* Transcript with Timeline */}
-          <TimelineViewer 
-            transcript={summaryData.transcript} 
-            videoId={summaryData.videoId}
-            onSeek={handleSeek}
-          />
-        </>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left column - Video */}
+            <div className="flex flex-col">
+              <VideoPlayer 
+                videoId={summaryData.videoId} 
+                onTimeUpdate={handleTimeUpdate}
+              />
+              
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowTranscript(!showTranscript)}
+                  className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
+                >
+                  {showTranscript ? t('hideTranscript') : t('showTranscript')}
+                </button>
+              </div>
+              
+              {/* Transcript (hidden by default) */}
+              {showTranscript && (
+                <div className="mt-4">
+                  <TimelineViewer 
+                    transcript={summaryData.transcript} 
+                    videoId={summaryData.videoId}
+                    onSeek={handleSeek}
+                  />
+                </div>
+              )}
+            </div>
+            
+            {/* Right column - Summary */}
+            <div className="h-[calc(100vh-12rem)] sticky top-20">
+              <SummaryDisplay
+                summary={summaryData.summary}
+                title={summaryData.title}
+                summaryType={summaryType}
+                videoId={summaryData.videoId}
+                onSeek={handleSeek}
+              />
+            </div>
+          </div>
+        </section>
       )}
     </main>
   );

@@ -19,33 +19,35 @@ export const SummaryTypeSelector: React.FC<SummaryTypeSelectorProps> = ({
   const { t } = useLanguage();
 
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+    <div>
+      <span className="block text-xs font-medium text-neutral-500 mb-2">
         {t('summaryType')}
-      </label>
-      <div className="flex space-x-4">
-        <label className={`inline-flex items-center ${disabled ? 'opacity-50' : ''}`}>
-          <input
-            type="radio"
-            value="short"
-            checked={selectedType === 'short'}
-            onChange={() => onChange('short')}
-            disabled={disabled}
-            className="form-radio h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
-          />
-          <span className="ml-2">{t('shortSummary')}</span>
-        </label>
-        <label className={`inline-flex items-center ${disabled ? 'opacity-50' : ''}`}>
-          <input
-            type="radio"
-            value="detailed"
-            checked={selectedType === 'detailed'}
-            onChange={() => onChange('detailed')}
-            disabled={disabled}
-            className="form-radio h-4 w-4 text-indigo-600 transition duration-150 ease-in-out"
-          />
-          <span className="ml-2">{t('detailedSummary')}</span>
-        </label>
+      </span>
+      <div className="inline-flex items-center p-1 bg-neutral-100 rounded-full">
+        <button
+          type="button"
+          onClick={() => onChange('short')}
+          disabled={disabled}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+            selectedType === 'short'
+              ? 'bg-white shadow-sm text-black'
+              : 'text-neutral-500 hover:text-neutral-700'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {t('shortSummary')}
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange('detailed')}
+          disabled={disabled}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+            selectedType === 'detailed'
+              ? 'bg-white shadow-sm text-black'
+              : 'text-neutral-500 hover:text-neutral-700'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {t('detailedSummary')}
+        </button>
       </div>
     </div>
   );

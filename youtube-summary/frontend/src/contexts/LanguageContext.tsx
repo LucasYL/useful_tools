@@ -24,7 +24,10 @@ const translations = {
     'watchOnYouTube': 'watch it directly on YouTube',
     'videoLoadError': 'Unable to load video',
     'invalidVideoId': 'Invalid video ID',
-    'transcriptUnavailable': 'Transcript data unavailable'
+    'transcriptUnavailable': 'Transcript data unavailable',
+    'showTranscript': 'Show Transcript',
+    'hideTranscript': 'Hide Transcript',
+    'pasteYoutubeUrl': 'Paste a YouTube video URL to generate a summary'
   },
   'zh': {
     'appTitle': 'YouTube视频摘要工具',
@@ -47,7 +50,10 @@ const translations = {
     'watchOnYouTube': '直接在YouTube上观看',
     'videoLoadError': '无法加载视频',
     'invalidVideoId': '无效的视频ID',
-    'transcriptUnavailable': '字幕数据不可用'
+    'transcriptUnavailable': '字幕数据不可用',
+    'showTranscript': '显示字幕',
+    'hideTranscript': '隐藏字幕',
+    'pasteYoutubeUrl': '粘贴YouTube视频网址以生成摘要'
   }
 };
 
