@@ -7,18 +7,39 @@ interface SummaryDisplayProps {
   summary: string;
   title: string;
   summaryType: string;
+  videoId?: string;
+  onSeek?: (time: number) => void;
 }
 
-export function SummaryDisplay({ summary, title, summaryType }: SummaryDisplayProps) {
+export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }: SummaryDisplayProps) {
   const { t } = useLanguage();
   
-  // 处理摘要文本，增强时间戳的显示效果
+  // Convert timestamp to seconds
+  const timeToSeconds = (timeStr: string): number => {
+    const parts = timeStr.split(':');
+    if (parts.length === 2) {
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    } else if (parts.length === 3) {
+      return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+    }
+    return 0;
+  };
+  
+  // Handle timestamp click event
+  const handleTimestampClick = (timestamp: string) => {
+    if (onSeek) {
+      const seconds = timeToSeconds(timestamp);
+      onSeek(seconds);
+    }
+  };
+  
+  // Format summary text with enhanced timestamp display
   const formatSummary = (text: string) => {
-    // 使用正则表达式匹配时间戳格式，如 "0:00 - "
+    // Use regex to match timestamp format like "0:00 - "
     const parts = text.split(/(\d+:\d+)\s*-\s*/);
     
     if (parts.length <= 1) {
-      // 如果没有匹配到时间戳格式，则直接返回原文本
+      // If no timestamp format is matched, return the original text
       return <p className="whitespace-pre-wrap">{text}</p>;
     }
     
@@ -27,7 +48,7 @@ export function SummaryDisplay({ summary, title, summaryType }: SummaryDisplayPr
     
     while (i < parts.length) {
       if (i % 2 === 0) {
-        // 这是常规文本或段落标题
+        // This is regular text or paragraph heading
         if (parts[i].trim()) {
           elements.push(
             <p key={`text-${i}`} className="mb-4">
@@ -36,16 +57,21 @@ export function SummaryDisplay({ summary, title, summaryType }: SummaryDisplayPr
           );
         }
       } else {
-        // 这是时间戳
+        // This is a timestamp
         const timestamp = parts[i];
         const content = parts[i + 1] || '';
         
         elements.push(
           <div key={`section-${i}`} className="mb-6">
             <div className="flex items-center mb-2">
-              <span className="bg-indigo-100 text-indigo-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">
+              <button
+                onClick={() => handleTimestampClick(timestamp)}
+                className="bg-indigo-100 text-indigo-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded hover:bg-indigo-200 transition-colors flex items-center cursor-pointer"
+                title={t('timestampJumpTooltip')}
+              >
+                <span className="mr-1">▶</span>
                 {timestamp}
-              </span>
+              </button>
               <h4 className="font-semibold">
                 {content.split('\n')[0]?.trim()}
               </h4>
@@ -60,7 +86,7 @@ export function SummaryDisplay({ summary, title, summaryType }: SummaryDisplayPr
           </div>
         );
         
-        i++; // 跳过下一个部分，因为我们已经处理了
+        i++; // Skip the next part since we've already processed it
       }
       
       i++;
@@ -76,6 +102,11 @@ export function SummaryDisplay({ summary, title, summaryType }: SummaryDisplayPr
           {summaryType === 'detailed' ? t('detailedSummary') : t('shortSummary')}
         </h2>
         <h3 className="mb-4 text-lg font-semibold text-gray-700">{title}</h3>
+        <div className="mb-2 text-sm text-gray-500">
+          {videoId && onSeek ? (
+            <p>{t('clickTimestampToJump')}</p>
+          ) : null}
+        </div>
         {formatSummary(summary)}
       </div>
     </div>

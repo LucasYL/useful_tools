@@ -165,6 +165,8 @@ export default function Home() {
             summary={summaryData.summary}
             title={summaryData.title}
             summaryType={summaryType}
+            videoId={summaryData.videoId}
+            onSeek={handleSeek}
           />
           
           {/* Transcript with Timeline */}

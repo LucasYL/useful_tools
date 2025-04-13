@@ -15,20 +15,20 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
   const playerCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { t } = useLanguage();
 
-  // 监听来自iframe的消息
+  // Listen for messages from iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // 只处理来自YouTube的消息
+      // Only process messages from YouTube
       if (event.origin !== 'https://www.youtube.com') return;
       
       try {
         const data = JSON.parse(event.data);
-        // 检查是否是YouTube API事件
+        // Check if it's a YouTube API event
         if (data.event === 'onStateChange' && data.info === 1 && onTimeUpdate) {
-          // 播放状态变为播放中
+          // Playback state changed to playing
           if (playerCheckIntervalRef.current === null && iframeRef.current) {
             playerCheckIntervalRef.current = setInterval(() => {
-              // 发送getCurrentTime消息到iframe
+              // Send getCurrentTime message to iframe
               iframeRef.current?.contentWindow?.postMessage(
                 JSON.stringify({
                   event: 'command',
@@ -42,15 +42,15 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
         } else if (data.event === 'onReady') {
           setIsPlayerReady(true);
         } else if (data.event === 'onError') {
-          setPlayerError('视频无法加载，请尝试直接在YouTube上观看');
+          setPlayerError(t('videoLoadError'));
         } else if (data.event === 'infoDelivery' && data.info && typeof data.info.currentTime === 'number') {
-          // 接收到当前时间信息
+          // Received current time information
           if (onTimeUpdate) {
             onTimeUpdate(data.info.currentTime);
           }
         }
       } catch (e) {
-        // 忽略非JSON消息
+        // Ignore non-JSON messages
       }
     };
 
@@ -63,52 +63,52 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
         playerCheckIntervalRef.current = null;
       }
     };
-  }, [videoId, onTimeUpdate]);
+  }, [videoId, onTimeUpdate, t]);
 
-  // 处理加载超时
+  // Handle loading timeout
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (!isPlayerReady) {
         console.warn('YouTube player failed to load within timeout');
-        // 不设置错误，继续尝试加载视频
+        // Don't set error, continue trying to load video
       }
     }, 10000);
 
     return () => clearTimeout(timeoutId);
   }, [isPlayerReady]);
 
-  // 错误处理
+  // Error handling
   useEffect(() => {
     if (!videoId) {
-      setPlayerError('无效的视频ID');
+      setPlayerError(t('invalidVideoId'));
     } else {
       setPlayerError(null);
     }
-  }, [videoId]);
+  }, [videoId, t]);
 
-  // 直接使用iframe嵌入视频
+  // Embed video using iframe
   return (
     <div className="flex flex-col items-center mt-8">
-      <h2 className="mb-4 text-xl font-bold">视频</h2>
+      <h2 className="mb-4 text-xl font-bold">{t('video')}</h2>
       
       {!videoId && (
         <div className="w-[640px] h-[360px] bg-gray-100 flex items-center justify-center">
-          <div className="text-gray-600">未提供视频ID</div>
+          <div className="text-gray-600">{t('noVideoId')}</div>
         </div>
       )}
       
       {videoId && !isPlayerReady && !playerError && (
         <div className="w-[640px] h-[360px] bg-gray-100 flex items-center justify-center">
           <div className="flex flex-col items-center text-gray-600">
-            <p className="mb-4">加载视频播放器中...</p>
-            <p className="text-sm">如果视频无法加载，您可以
+            <p className="mb-4">{t('loadingPlayer')}</p>
+            <p className="text-sm">{t('videoLoadingFallback')}
               <a 
                 href={`https://www.youtube.com/watch?v=${videoId}`} 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-blue-500 underline ml-1"
               >
-                直接在YouTube上观看
+                {t('watchOnYouTube')}
               </a>
             </p>
           </div>
@@ -118,7 +118,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       {playerError && (
         <div className="w-[640px] h-[360px] bg-red-50 flex items-center justify-center">
           <div className="text-red-600 text-center p-4">
-            <p className="font-bold mb-2">无法加载视频</p>
+            <p className="font-bold mb-2">{t('videoLoadError')}</p>
             <p className="mb-4">{playerError}</p>
             <a 
               href={`https://www.youtube.com/watch?v=${videoId}`} 
@@ -126,7 +126,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
               rel="noopener noreferrer" 
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
-              在YouTube上观看
+              {t('watchOnYouTube')}
             </a>
           </div>
         </div>
@@ -144,10 +144,10 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
           allowFullScreen
           className={!isPlayerReady && playerError === null ? 'hidden' : ''}
           onLoad={() => {
-            // iframe加载完成不代表播放器准备好，所以我们仍然需要等待onReady消息
+            // iframe load completion doesn't mean player is ready, so we still need to wait for onReady message
             setTimeout(() => {
               if (!isPlayerReady) {
-                setIsPlayerReady(true); // 如果10秒后仍未收到onReady消息，则强制显示
+                setIsPlayerReady(true); // If onReady message not received after 3 seconds, force display
               }
             }, 3000);
           }}
@@ -156,9 +156,6 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
     </div>
   );
 }
-
-// TimelineViewer组件内容保持不变
-// ... 现有的TimelineViewer组件代码 ...
 
 // Enhanced TranscriptViewer with timestamp linking
 interface TranscriptEntry {
@@ -176,6 +173,7 @@ interface TimelineViewerProps {
 export function TimelineViewer({ transcript, videoId, onSeek }: TimelineViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState<number>(0);
 
   // Format time in MM:SS format
   const formatTime = (seconds: number): string => {
@@ -188,30 +186,69 @@ export function TimelineViewer({ transcript, videoId, onSeek }: TimelineViewerPr
   const seekTo = (time: number) => {
     if (typeof onSeek === 'function') {
       onSeek(time);
+      setCurrentPlaybackTime(time);
     }
   };
+
+  // Use useEffect to track current playback time updates
+  useEffect(() => {
+    // Listen for video playback update messages
+    const handleTimeUpdate = (event: MessageEvent) => {
+      if (event.origin !== 'https://www.youtube.com') return;
+      
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === 'infoDelivery' && data.info && typeof data.info.currentTime === 'number') {
+          setCurrentPlaybackTime(data.info.currentTime);
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    };
+    
+    window.addEventListener('message', handleTimeUpdate);
+    return () => {
+      window.removeEventListener('message', handleTimeUpdate);
+    };
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto mt-8">
       <h2 className="mb-4 text-xl font-bold">{t('transcript')}</h2>
-      <div 
-        ref={containerRef}
-        className="p-4 bg-white rounded-lg shadow max-h-96 overflow-y-auto"
-      >
-        {transcript.map((entry, index) => (
-          <div 
-            key={index} 
-            className="mb-2 p-2 border-l-4 border-transparent transcript-entry hover:bg-gray-50 cursor-pointer"
-            onClick={() => seekTo(entry.start)}
-            data-start={entry.start}
-          >
-            <span className="text-gray-500 font-mono">
-              {formatTime(entry.start)}
-            </span>
-            <p>{entry.text}</p>
-          </div>
-        ))}
-      </div>
+      {transcript && transcript.length > 0 ? (
+        <div 
+          ref={containerRef}
+          className="p-4 bg-white rounded-lg shadow max-h-96 overflow-y-auto"
+        >
+          {transcript.map((entry, index) => {
+            // Check if this is the currently playing segment
+            const isCurrentlyPlaying = currentPlaybackTime >= entry.start && 
+                                      currentPlaybackTime < (entry.start + entry.duration);
+            
+            return (
+              <div 
+                key={index} 
+                className={`mb-2 p-2 border-l-4 transcript-entry hover:bg-gray-50 cursor-pointer transition duration-200 ${
+                  isCurrentlyPlaying ? 'border-blue-500 bg-blue-50' : 'border-transparent'
+                }`}
+                onClick={() => seekTo(entry.start)}
+                data-start={entry.start}
+              >
+                <span className={`font-mono ${
+                  isCurrentlyPlaying ? 'text-blue-600 font-bold' : 'text-gray-500'
+                }`}>
+                  {formatTime(entry.start)}
+                </span>
+                <p className={isCurrentlyPlaying ? 'font-medium' : ''}>{entry.text}</p>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="p-4 bg-gray-100 text-gray-600 rounded-lg text-center">
+          {t('transcriptUnavailable')}
+        </div>
+      )}
     </div>
   );
 } 

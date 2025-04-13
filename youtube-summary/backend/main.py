@@ -165,11 +165,32 @@ async def summarize_video(request: VideoRequest):
         # Get video metadata
         metadata = get_video_metadata(video_id)
         
-        # Convert transcript to text
-        full_text = " ".join([entry["text"] for entry in transcript])
+        # Create enhanced text with timestamps for each entry
+        enhanced_text = ""
         
-        # Generate only the requested summary type
-        summary = generate_summary(full_text, request.summary_type, metadata, request.language)
+        # Convert each transcript entry to a format with timestamp markers
+        for entry in transcript:
+            # Format time as MM:SS
+            minutes = int(entry['start'] // 60)
+            seconds = int(entry['start'] % 60)
+            time_marker = f"[{minutes}:{seconds:02d}] "
+            
+            # Add text with timestamp marker
+            enhanced_text += time_marker + entry.get('text', '') + " "
+        
+        # Add video end timestamp
+        if transcript and len(transcript) > 0:
+            last_entry = transcript[-1]
+            video_duration = last_entry['start'] + last_entry['duration']
+            minutes = int(video_duration // 60)
+            seconds = int(video_duration % 60)
+            enhanced_text += f"[{minutes}:{seconds:02d}] End of video."
+            
+        # Add format explanation to the prompt
+        format_note = "\nNOTE: The transcript contains timestamp markers in the format [MM:SS] indicating the start time of each segment in the video."
+            
+        # Generate summary with the enhanced text
+        summary = generate_summary(enhanced_text, request.summary_type, metadata, request.language, format_note)
         
         # Return response
         return {
@@ -190,7 +211,7 @@ async def summarize_video(request: VideoRequest):
         )
 
 # Function to generate summary using OpenAI API
-def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, Any]] = None, language: str = "en") -> str:
+def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, Any]] = None, language: str = "en", format_note: str = "") -> str:
     # Define enhanced prompts that include video metadata
     if metadata:
         title = metadata.get("title", "")
@@ -253,6 +274,13 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
             target_language = language_map.get(language, language)
             language_instructions = f"\nPlease provide your response in {target_language}."
         
+        # Add format note to instructions
+        if format_note:
+            if language_instructions:
+                language_instructions = format_note + language_instructions
+            else:
+                language_instructions = format_note
+        
         # Enhanced prompts using metadata
         prompts = {
             "short": f"""You are analyzing a YouTube video titled "{title}".
@@ -265,9 +293,12 @@ Video description:
 Please create a concise summary of the video transcript. Your summary must:
 1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
 2. Divide the content into sections based on natural topic shifts in the transcript
-3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
 4. Present timestamps in STRICT chronological order (from beginning to end)
-5. Adjust summary length based on video duration - use approximately 20-30 words per minute of video
+5. For videos under 60 minutes, provide more detailed coverage with appropriate length for the language:
+   - For English: 20-30 words per minute of video
+   - For Chinese: 30-50 characters per minute of video
+   - For other languages: adjust accordingly to ensure comprehensive coverage
 6. Focus on main points, keep explanations brief but comprehensive
 
 Example format:
@@ -276,12 +307,13 @@ Example format:
 etc.
 
 CRITICAL RULES:
-- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
-- Your summary MUST cover the complete video content in chronological order
-- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
-- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
-- Keep the total summary length proportional to video length (20-30 words per minute)
-- Never generate timestamps that exceed the video duration
+- Each line in the transcript has a timestamp in the [MM:SS] format. USE THESE TIMESTAMPS to mark the beginning of your summary sections.
+- If the video has chapters, use those chapter timestamps as primary section dividers.
+- For videos without chapters, identify natural topic shifts in the transcript and use the timestamps at those points.
+- Your summary MUST cover the complete video content in chronological order.
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts.
+- For shorter videos (under 60 minutes), provide more detailed coverage of key concepts.
+- Never generate timestamps that exceed the video duration.
 
 The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
             
@@ -295,9 +327,12 @@ Video description:
 Please provide a detailed summary of the video transcript. Your summary must:
 1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
 2. Organize the summary by natural content sections (topic changes in the transcript)
-3. Start each section with an ACCURATE timestamp (MM:SS format) derived DIRECTLY from the transcript
+3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
 4. Present timestamps in STRICT chronological order (from beginning to end)
-5. Adjust summary length based on video duration - use approximately 40-70 words per minute of video
+5. For videos under 60 minutes, provide more detailed coverage with appropriate length for the language:
+   - For English: 40-70 words per minute of video
+   - For Chinese: 50-90 characters per minute of video 
+   - For other languages: adjust accordingly to ensure comprehensive coverage
 6. Include specific details, examples, and insights from each section
 
 Your summary should follow this format:
@@ -310,13 +345,14 @@ Detailed summary of this section's content...
 etc.
 
 CRITICAL RULES:
-- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
-- Your summary MUST cover the complete video content in chronological order
-- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
-- Ensure balanced coverage - don't focus too much on early parts and rush through later parts
-- Keep the total summary length proportional to video length (40-70 words per minute)
-- Provide more details than the concise summary, but still focus on what's most important
-- Never generate timestamps that exceed the video duration
+- Each line in the transcript has a timestamp in the [MM:SS] format. USE THESE TIMESTAMPS to mark the beginning of your summary sections.
+- If the video has chapters, use those chapter timestamps as primary section dividers.
+- For videos without chapters, identify natural topic shifts in the transcript and use the timestamps at those points.
+- Your summary MUST cover the complete video content in chronological order.
+- Ensure balanced coverage - don't focus too much on early parts and rush through later parts.
+- For shorter videos (under 60 minutes), provide more thorough analysis of the content.
+- Provide more details than the concise summary, including examples and key insights.
+- Never generate timestamps that exceed the video duration.
 
 The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }
@@ -330,10 +366,17 @@ The goal is to create a well-structured, comprehensive summary that covers the e
                 "fr": "French (Français)",
                 "de": "German (Deutsch)",
                 "ja": "Japanese (日本語)",
-                "ko": "Korean (한国语)",
+                "ko": "Korean (한국어)",
             }
             target_language = language_map.get(language, language)
             language_instructions = f"\nPlease provide your response in {target_language}."
+            
+        # Add format note to instructions
+        if format_note:
+            if language_instructions:
+                language_instructions = format_note + language_instructions
+            else:
+                language_instructions = format_note
             
         # Original prompts if no metadata is available
         prompts = {
@@ -351,9 +394,9 @@ Example format:
 etc.
 
 CRITICAL RULES:
-- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear in the [MM:SS] format in the transcript.
 - Your summary MUST cover the complete video content in chronological order
-- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Only use timestamps that are explicitly marked in the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
 - Keep the total summary length proportional to video length (20-30 words per minute)
 - Never introduce timestamps that exceed the video duration
@@ -378,9 +421,9 @@ Detailed summary of this section's content...
 etc.
 
 CRITICAL RULES:
-- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear as [TIMESTAMP: MM:SS] in the transcript or are explicitly mentioned.
+- DO NOT INVENT OR HALLUCINATE ANY TIMESTAMPS. Only use timestamps that appear in the [MM:SS] format in the transcript.
 - Your summary MUST cover the complete video content in chronological order
-- Only use timestamps that are explicitly mentioned in the transcript or that you can directly infer from the transcript
+- Only use timestamps that are explicitly marked in the transcript
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts
 - Keep the total summary length proportional to video length (40-70 words per minute)
 - Provide more details than the concise summary, but still focus on what's most important
@@ -392,63 +435,43 @@ The goal is to create a well-structured, comprehensive summary that covers the e
     try:
         # Determine if input is directly transcript or text
         input_text = text
-        transcript_entries = []
         
-        # Try to extract transcript entries for time information
-        if isinstance(text, list):
-            # If we received the raw transcript list
-            transcript_entries = text
-            input_text = " ".join([entry.get("text", "") for entry in text if isinstance(entry, dict) and "text" in entry])
-        else:
-            # Try to parse from the JSON string if it's embedded
-            import re
-            import json
-            transcript_match = re.search(r'\[.*\]', text)
-            if transcript_match:
-                try:
-                    transcript_entries = json.loads(transcript_match.group(0))
-                except:
-                    pass
-        
-        # 计算视频实际总时长
-        video_duration = 0
-        if transcript_entries:
-            last_entry = transcript_entries[-1]
-            if isinstance(last_entry, dict) and 'start' in last_entry and 'duration' in last_entry:
-                video_duration = last_entry['start'] + last_entry['duration']
-                
-                # 在prompt中添加明确的视频实际时长
-                video_duration_text = f"\nIMPORTANT: The video's EXACT duration is {int(video_duration // 60)}:{int(video_duration % 60):02d}. DO NOT generate timestamps beyond this time."
-                
-                if "system_content" in prompts[summary_type]:
-                    prompts[summary_type]["system_content"] += video_duration_text
+        # Calculate video duration directly from the text if possible
+        match = re.search(r'\[(\d+:\d+)\]\s*End of video', text)
+        if match:
+            video_duration_str = match.group(1)
+            # Add video duration to prompt
+            video_duration_text = f"\nIMPORTANT: The video's EXACT duration is {video_duration_str}. DO NOT generate timestamps beyond this time."
+            
+            for summary_type_key in prompts:
+                if isinstance(prompts[summary_type_key], dict) and "system_content" in prompts[summary_type_key]:
+                    prompts[summary_type_key]["system_content"] += video_duration_text
                 else:
-                    # 直接拼接到现有提示中
-                    prompts[summary_type] += video_duration_text
+                    prompts[summary_type_key] += video_duration_text
         
-        # If we have transcript entries, add time markers to help the model understand the timing
-        if transcript_entries and len(transcript_entries) > 5:
-            # For videos, add frequent timestamp markers
-            time_enriched_text = ""
-            
-            # 更频繁地添加时间标记，确保约每15秒有一个
-            last_time = -15  # 初始化为负值，确保第一个条目会添加时间标记
-            for i, entry in enumerate(transcript_entries):
-                if 'start' in entry and entry['start'] - last_time >= 15:
-                    minutes = int(entry['start'] // 60)
-                    seconds = int(entry['start'] % 60)
-                    time_marker = f"[TIMESTAMP: {minutes}:{seconds:02d}] "
-                    time_enriched_text += time_marker
-                    last_time = entry['start']
+        # Extract reference timestamps to help the model
+        time_points = []
+        time_matches = re.finditer(r'\[(\d+:\d+)\]\s*([^\[]+)', text)
+        
+        # Take approximately 10 evenly spaced timestamps as reference points
+        all_matches = list(time_matches)
+        if all_matches:
+            step = max(1, len(all_matches) // 10)
+            for i in range(0, len(all_matches), step):
+                if i < len(all_matches):
+                    match = all_matches[i]
+                    timestamp = match.group(1)
+                    sample_text = match.group(2).strip()[:50] + ('...' if len(match.group(2).strip()) > 50 else '')
+                    time_points.append(f"{timestamp} - \"{sample_text}\"")
+        
+            # Add reference timestamps to prompt
+            if time_points:
+                time_points_text = "\n\nReference timestamps in transcript (MM:SS - text sample):\n" + "\n".join(time_points)
                 
-                time_enriched_text += entry.get('text', '') + " "
-            
-            # 确保最后一个时间戳正确
-            if video_duration > 0:
-                time_enriched_text += f" [TIMESTAMP: {int(video_duration // 60)}:{int(video_duration % 60):02d}] End of video."
-            
-            # Use the enriched text with time markers
-            input_text = time_enriched_text
+                if isinstance(prompts[summary_type], dict) and "system_content" in prompts[summary_type]:
+                    prompts[summary_type]["system_content"] += time_points_text
+                else:
+                    prompts[summary_type] += time_points_text
         
         # Use OpenAI API to generate summary (synchronous version)
         client = OpenAI(api_key=openai_api_key)
