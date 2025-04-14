@@ -279,15 +279,27 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
 \nPlease provide your response in {target_language}.
 
 LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
-- Chinese summaries MUST be comprehensive and detailed
-- Minimum length requirements for Chinese:
-  * For 10-minute videos: at least 600-800 characters
-  * For 30-minute videos: at least 1500-1800 characters
-  * For 60-minute videos: at least 3000-3600 characters
-- Use at least 60-100 Chinese characters per minute of video for detailed summaries
-- Include specific quotes and details from the video
-- DO NOT make the summary too short - utilize the full context window
-- If the video discusses complex topics, provide even more detailed explanations
+- 中文摘要应当清晰简洁，使用恰当的字数表达视频内容
+- 长度要求（必须遵守）：
+  * short类型摘要：
+    - 10分钟以下视频：每分钟约50-70个汉字
+    - 10-30分钟视频：每分钟约40-60个汉字（总计至少500个汉字）
+    - 30-60分钟视频：每分钟约30-50个汉字（总计至少1200个汉字）
+    - 60分钟以上视频：每分钟约25-40个汉字（总计至少2000个汉字）
+  * detailed类型摘要：
+    - 10分钟以下视频：每分钟约80-100个汉字
+    - 10-30分钟视频：每分钟约70-90个汉字（总计至少1000个汉字）
+    - 30-60分钟视频：每分钟约60-80个汉字（总计至少2500个汉字）
+    - 60分钟以上视频：每分钟约50-70个汉字（总计至少3500个汉字）
+- 使用地道的中文表达，避免直译英文
+- 确保每个时间戳段落简明扼要，详略得当
+
+示例格式：
+0:00 - [节标题]
+内容简述...（根据摘要类型控制字数）
+
+2:15 - [节标题]
+内容简述...（根据摘要类型控制字数）
 """
             else:
                 language_instructions = f"\nPlease provide your response in {target_language}."
@@ -408,15 +420,27 @@ The goal is to create a well-structured, comprehensive summary that covers the e
 \nPlease provide your response in {target_language}.
 
 LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
-- Chinese summaries MUST be comprehensive and detailed
-- Minimum length requirements for Chinese:
-  * For 10-minute videos: at least 600-800 characters
-  * For 30-minute videos: at least 1500-1800 characters
-  * For 60-minute videos: at least 3000-3600 characters
-- Use at least 60-100 Chinese characters per minute of video for detailed summaries
-- Include specific quotes and details from the video
-- DO NOT make the summary too short - utilize the full context window
-- If the video discusses complex topics, provide even more detailed explanations
+- 中文摘要应当清晰简洁，使用恰当的字数表达视频内容
+- 长度要求（必须遵守）：
+  * short类型摘要：
+    - 10分钟以下视频：每分钟约50-70个汉字
+    - 10-30分钟视频：每分钟约40-60个汉字（总计至少500个汉字）
+    - 30-60分钟视频：每分钟约30-50个汉字（总计至少1200个汉字）
+    - 60分钟以上视频：每分钟约25-40个汉字（总计至少2000个汉字）
+  * detailed类型摘要：
+    - 10分钟以下视频：每分钟约80-100个汉字
+    - 10-30分钟视频：每分钟约70-90个汉字（总计至少1000个汉字）
+    - 30-60分钟视频：每分钟约60-80个汉字（总计至少2500个汉字）
+    - 60分钟以上视频：每分钟约50-70个汉字（总计至少3500个汉字）
+- 使用地道的中文表达，避免直译英文
+- 确保每个时间戳段落简明扼要，详略得当
+
+示例格式：
+0:00 - [节标题]
+内容简述...（根据摘要类型控制字数）
+
+2:15 - [节标题]
+内容简述...（根据摘要类型控制字数）
 """
             else:
                 language_instructions = f"\nPlease provide your response in {target_language}."
