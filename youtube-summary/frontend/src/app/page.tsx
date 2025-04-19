@@ -49,11 +49,11 @@ export default function Home() {
         throw new Error('Invalid YouTube URL');
       }
       
-      console.log('正在为视频生成摘要:', videoId);
+      console.log('Generating summary for video:', videoId);
       
-      // 创建超时信号（防止请求超时）
+      // Create timeout signal to prevent request hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120秒超时
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds timeout
       
       // Call backend API
       const response = await fetch('http://localhost:8000/api/summarize', {
@@ -69,36 +69,36 @@ export default function Home() {
         signal: controller.signal,
       });
       
-      // 清除超时计时器
+      // Clear timeout timer
       clearTimeout(timeoutId);
       
-      console.log('收到响应，状态码:', response.status);
+      console.log('Received response, status code:', response.status);
 
       if (!response.ok) {
-        // 增强错误处理，获取原始响应文本
+        // Enhanced error handling, get original response text
         const errorText = await response.text();
-        console.error('错误响应:', errorText.substring(0, 200) + (errorText.length > 200 ? '...' : ''));
+        console.error('Error response:', errorText.substring(0, 200) + (errorText.length > 200 ? '...' : ''));
         
-        // 尝试解析JSON（如果可能）
+        // Try parsing JSON (if possible)
         try {
           const errorData = JSON.parse(errorText);
-          throw new Error(errorData.detail?.message || '获取摘要失败');
+          throw new Error(errorData.detail?.message || 'Failed to fetch summary');
         } catch (parseError) {
-          throw new Error(`请求失败 (${response.status}): ${errorText.substring(0, 100)}...`);
+          throw new Error(`Request failed (${response.status}): ${errorText.substring(0, 100)}...`);
         }
       }
 
-      // 解析响应JSON
+      // Parse response JSON
       let data;
       try {
         const responseText = await response.text();
-        console.log('成功获取响应，数据大小:', Math.round(responseText.length / 1024) + 'KB');
+        console.log('Successfully received response, data size:', Math.round(responseText.length / 1024) + 'KB');
         
         data = JSON.parse(responseText);
-        console.log('摘要长度:', data.summary.length + '字符');
+        console.log('Summary length:', data.summary.length + ' characters');
       } catch (jsonError: any) {
-        console.error('解析响应JSON失败');
-        throw new Error(`解析响应失败: ${jsonError.message}`);
+        console.error('Failed to parse response JSON');
+        throw new Error(`Parse response failed: ${jsonError.message}`);
       }
 
       setSummaryData({
@@ -110,8 +110,8 @@ export default function Home() {
         chapters: data.chapters,
       });
     } catch (err) {
-      console.error('处理错误:', err);
-      setError(err instanceof Error ? err.message : '发生未知错误');
+      console.error('Processing error:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);
     }
@@ -146,7 +146,7 @@ export default function Home() {
     setCurrentTime(time);
   };
 
-  // 修改语言处理函数，同时更新界面语言和后端请求参数
+  // Handle language change - update both UI language and backend request parameter
   const handleLanguageChange = (languageCode: string) => {
     setLanguage(languageCode);
   };

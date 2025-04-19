@@ -274,34 +274,34 @@ def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, 
                 "ko": "Korean (한국어)",
             }
             target_language = language_map.get(language, language)
-            # 针对不同语言的特殊指导
+            # Special instructions for different languages
             if language == "zh":
-                # 中文需要更多字符才能表达同等内容
+                # Chinese requires more characters to express equivalent content
                 language_instructions = f"""
 \nPlease provide your response in {target_language}.
 
 LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
-- 中文摘要应当清晰简洁，使用恰当的字数表达视频内容
-- 长度要求（必须遵守）：
-  * short类型摘要：
-    - 10分钟以下视频：每分钟约50-70个汉字
-    - 10-30分钟视频：每分钟约40-60个汉字（总计至少500个汉字）
-    - 30-60分钟视频：每分钟约30-50个汉字（总计至少1200个汉字）
-    - 60分钟以上视频：每分钟约25-40个汉字（总计至少2000个汉字）
-  * detailed类型摘要：
-    - 10分钟以下视频：每分钟约80-100个汉字
-    - 10-30分钟视频：每分钟约70-90个汉字（总计至少1000个汉字）
-    - 30-60分钟视频：每分钟约60-80个汉字（总计至少2500个汉字）
-    - 60分钟以上视频：每分钟约50-70个汉字（总计至少3500个汉字）
-- 使用地道的中文表达，避免直译英文
-- 确保每个时间戳段落简明扼要，详略得当
+- Chinese summaries should be clear and concise, using appropriate character count
+- Length requirements (must follow):
+  * short summary type:
+    - Videos under 10 minutes: ~50-70 characters per minute
+    - 10-30 minute videos: ~40-60 characters per minute (minimum 500 characters total)
+    - 30-60 minute videos: ~30-50 characters per minute (minimum 1200 characters total)
+    - Videos over 60 minutes: ~25-40 characters per minute (minimum 2000 characters total)
+  * detailed summary type:
+    - Videos under 10 minutes: ~80-100 characters per minute
+    - 10-30 minute videos: ~70-90 characters per minute (minimum 1000 characters total)
+    - 30-60 minute videos: ~60-80 characters per minute (minimum 2500 characters total)
+    - Videos over 60 minutes: ~50-70 characters per minute (minimum 3500 characters total)
+- Use natural Chinese expressions, avoid direct translations from English
+- Ensure each timestamp section is concise and appropriately detailed
 
-示例格式：
-0:00 - [节标题]
-内容简述...（根据摘要类型控制字数）
+Format example:
+0:00 - [Section title]
+Content summary... (control character count based on summary type)
 
-2:15 - [节标题]
-内容简述...（根据摘要类型控制字数）
+2:15 - [Section title]
+Content summary... (control character count based on summary type)
 """
             else:
                 language_instructions = f"\nPlease provide your response in {target_language}."
@@ -415,34 +415,34 @@ The goal is to create a well-structured, comprehensive summary that covers the e
                 "ko": "Korean (한국어)",
             }
             target_language = language_map.get(language, language)
-            # 针对不同语言的特殊指导
+            # Special instructions for different languages
             if language == "zh":
-                # 中文需要更多字符才能表达同等内容
+                # Chinese requires more characters to express equivalent content
                 language_instructions = f"""
 \nPlease provide your response in {target_language}.
 
 LANGUAGE-SPECIFIC INSTRUCTIONS FOR CHINESE:
-- 中文摘要应当清晰简洁，使用恰当的字数表达视频内容
-- 长度要求（必须遵守）：
-  * short类型摘要：
-    - 10分钟以下视频：每分钟约50-70个汉字
-    - 10-30分钟视频：每分钟约40-60个汉字（总计至少500个汉字）
-    - 30-60分钟视频：每分钟约30-50个汉字（总计至少1200个汉字）
-    - 60分钟以上视频：每分钟约25-40个汉字（总计至少2000个汉字）
-  * detailed类型摘要：
-    - 10分钟以下视频：每分钟约80-100个汉字
-    - 10-30分钟视频：每分钟约70-90个汉字（总计至少1000个汉字）
-    - 30-60分钟视频：每分钟约60-80个汉字（总计至少2500个汉字）
-    - 60分钟以上视频：每分钟约50-70个汉字（总计至少3500个汉字）
-- 使用地道的中文表达，避免直译英文
-- 确保每个时间戳段落简明扼要，详略得当
+- Chinese summaries should be clear and concise, using appropriate character count
+- Length requirements (must follow):
+  * short summary type:
+    - Videos under 10 minutes: ~50-70 characters per minute
+    - 10-30 minute videos: ~40-60 characters per minute (minimum 500 characters total)
+    - 30-60 minute videos: ~30-50 characters per minute (minimum 1200 characters total)
+    - Videos over 60 minutes: ~25-40 characters per minute (minimum 2000 characters total)
+  * detailed summary type:
+    - Videos under 10 minutes: ~80-100 characters per minute
+    - 10-30 minute videos: ~70-90 characters per minute (minimum 1000 characters total)
+    - 30-60 minute videos: ~60-80 characters per minute (minimum 2500 characters total)
+    - Videos over 60 minutes: ~50-70 characters per minute (minimum 3500 characters total)
+- Use natural Chinese expressions, avoid direct translations from English
+- Ensure each timestamp section is concise and appropriately detailed
 
-示例格式：
-0:00 - [节标题]
-内容简述...（根据摘要类型控制字数）
+Format example:
+0:00 - [Section title]
+Content summary... (control character count based on summary type)
 
-2:15 - [节标题]
-内容简述...（根据摘要类型控制字数）
+2:15 - [Section title]
+Content summary... (control character count based on summary type)
 """
             else:
                 language_instructions = f"\nPlease provide your response in {target_language}."
