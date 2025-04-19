@@ -49,8 +49,14 @@ export default function Home() {
         throw new Error('Invalid YouTube URL');
       }
       
+      console.log('正在为视频生成摘要:', videoId);
+      
+      // 创建超时信号（防止请求超时）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120秒超时
+      
       // Call backend API
-      const response = await fetch('/api/summarize', {
+      const response = await fetch('http://localhost:8000/api/summarize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,14 +66,41 @@ export default function Home() {
           summary_type: summaryType,
           language: language
         }),
+        signal: controller.signal,
       });
+      
+      // 清除超时计时器
+      clearTimeout(timeoutId);
+      
+      console.log('收到响应，状态码:', response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail?.message || 'Failed to fetch summary');
+        // 增强错误处理，获取原始响应文本
+        const errorText = await response.text();
+        console.error('错误响应:', errorText.substring(0, 200) + (errorText.length > 200 ? '...' : ''));
+        
+        // 尝试解析JSON（如果可能）
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.detail?.message || '获取摘要失败');
+        } catch (parseError) {
+          throw new Error(`请求失败 (${response.status}): ${errorText.substring(0, 100)}...`);
+        }
       }
 
-      const data = await response.json();
+      // 解析响应JSON
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('成功获取响应，数据大小:', Math.round(responseText.length / 1024) + 'KB');
+        
+        data = JSON.parse(responseText);
+        console.log('摘要长度:', data.summary.length + '字符');
+      } catch (jsonError: any) {
+        console.error('解析响应JSON失败');
+        throw new Error(`解析响应失败: ${jsonError.message}`);
+      }
+
       setSummaryData({
         videoId: data.video_id,
         title: data.title,
@@ -77,7 +110,8 @@ export default function Home() {
         chapters: data.chapters,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('处理错误:', err);
+      setError(err instanceof Error ? err.message : '发生未知错误');
     } finally {
       setLoading(false);
     }

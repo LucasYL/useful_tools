@@ -12,10 +12,10 @@ from openai import OpenAI
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI API
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# Initialize API
+openai_api_key = os.getenv("OPENROUTER_API_KEY")
 if not openai_api_key:
-    print("Warning: OPENAI_API_KEY not found in environment variables")
+    print("Warning: OPENROUTER_API_KEY not found in environment variables")
 
 app = FastAPI()
 
@@ -185,6 +185,8 @@ async def summarize_video(request: VideoRequest):
             minutes = int(video_duration // 60)
             seconds = int(video_duration % 60)
             enhanced_text += f"[{minutes}:{seconds:02d}] End of video."
+        
+        print(f"[DEBUG] Enhanced text length: {len(enhanced_text)} characters")
             
         # Add format explanation to the prompt
         format_note = "\nNOTE: The transcript contains timestamp markers in the format [MM:SS] indicating the start time of each segment in the video."
@@ -210,7 +212,7 @@ async def summarize_video(request: VideoRequest):
             detail={"error": error_message, "message": "Failed to process video"}
         )
 
-# Function to generate summary using OpenAI API
+# Function to generate summary using OpenRouter API with Claude 3.7 Sonnet
 def generate_summary(text: str, summary_type: str, metadata: Optional[Dict[str, Any]] = None, language: str = "en", format_note: str = "") -> str:
     # Define enhanced prompts that include video metadata
     if metadata:
@@ -586,21 +588,37 @@ The goal is to create a well-structured, comprehensive summary that covers the e
                 else:
                     prompts[summary_type] += time_points_text
         
-        # Use OpenAI API to generate summary (synchronous version)
-        client = OpenAI(api_key=openai_api_key)
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": prompts[summary_type]},
-                {"role": "user", "content": text}
-            ],
-            max_tokens=4000,  # 使用最大输出长度
-            temperature=0.7   # 增加多样性，鼓励更详细的输出
+        # Use OpenRouter API to generate summary with Claude 3.7 Sonnet
+        client = OpenAI(
+            api_key=openai_api_key,
+            base_url="https://openrouter.ai/api/v1",
         )
+        print(f"[DEBUG] System prompt length: {len(prompts[summary_type])}")
+        print(f"[DEBUG] Transcript text length: {len(text)}")
         
-        return response.choices[0].message.content
+        try:
+            response = client.chat.completions.create(
+                model="anthropic/claude-3.7-sonnet",
+                messages=[
+                    {"role": "system", "content": prompts[summary_type]},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=10000,
+                temperature=0.7,
+            )
+            
+            print(f"[DEBUG] Received response from OpenRouter API")
+            
+            # Debug the response content
+            response_content = response.choices[0].message.content
+            print(f"[DEBUG] Summary length: {len(response_content)} characters")
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"[DEBUG] Error during API call: {str(e)}")
+            raise e
     except Exception as e:
-        # If OpenAI API fails, return a placeholder
+        # If API fails, return a placeholder
         print(f"Error generating summary: {str(e)}")
         return "Summary generation failed. Please try again later."
 
