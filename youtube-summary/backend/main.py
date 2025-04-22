@@ -23,7 +23,7 @@ app = FastAPI()
 class VideoRequest(BaseModel):
     video_id: str
     summary_type: str = "short"  # 'short' or 'detailed'
-    language: str = "en"  # 'en', 'zh', etc.
+    language: str = "en" 
 
 class TranscriptEntry(BaseModel):
     text: str
