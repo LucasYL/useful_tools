@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from youtube_transcript_api import YouTubeTranscriptApi
 from typing import List, Dict, Any, Optional
@@ -8,6 +8,17 @@ import subprocess
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
+from datetime import datetime
+from sqlalchemy.orm import Session
+
+# 导入数据库相关模块
+from db import Base, engine, get_db
+from models import User, Summary
+from auth import router as auth_router, get_current_user_optional
+from summary_routes import router as summary_router, SummaryCreate
+
+# 创建数据库表
+Base.metadata.create_all(bind=engine)
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +29,10 @@ if not openai_api_key:
     print("Warning: OPENROUTER_API_KEY not found in environment variables")
 
 app = FastAPI()
+
+# 注册路由
+app.include_router(auth_router, prefix="/auth")
+app.include_router(summary_router, prefix="/api/summaries")
 
 # Define request and response models
 class VideoRequest(BaseModel):
@@ -154,7 +169,11 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
 
 # Route for video summarization
 @app.post("/api/summarize", response_model=SummaryResponse)
-async def summarize_video(request: VideoRequest):
+async def summarize_video(
+    request: VideoRequest, 
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
     try:
         # Extract video ID if a full URL was provided
         video_id = extract_video_id(request.video_id)
@@ -193,6 +212,36 @@ async def summarize_video(request: VideoRequest):
             
         # Generate summary with the enhanced text
         summary = generate_summary(enhanced_text, request.summary_type, metadata, request.language, format_note)
+        
+        # 如果用户已登录，保存摘要到数据库
+        if current_user:
+            # 检查是否已存在相同视频的摘要
+            existing_summary = db.query(Summary).filter(
+                Summary.user_id == current_user.id,
+                Summary.video_id == video_id,
+                Summary.summary_type == request.summary_type,
+                Summary.language == request.language
+            ).first()
+            
+            # 已存在则更新，否则创建新记录
+            if existing_summary:
+                existing_summary.summary_text = summary
+                existing_summary.video_title = metadata["title"]
+                existing_summary.created_at = datetime.utcnow()
+                db.commit()
+            else:
+                # 创建新摘要
+                db_summary = Summary(
+                    user_id=current_user.id,
+                    video_id=video_id,
+                    video_title=metadata["title"],
+                    summary_text=summary,
+                    summary_type=request.summary_type,
+                    language=request.language
+                )
+                db.add(db_summary)
+                db.commit()
+                print(f"[DEBUG] Summary saved to database for user {current_user.username}")
         
         # Return response
         return {

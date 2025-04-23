@@ -4,4 +4,9 @@ youtube_transcript_api
 python-dotenv
 openai
 uvicorn
-yt-dlp 
+yt-dlp
+sqlalchemy
+psycopg2-binary
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart 
