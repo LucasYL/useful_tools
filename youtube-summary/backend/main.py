@@ -676,6 +676,37 @@ The goal is to create a well-structured, comprehensive summary that covers the e
 async def health_check():
     return {"status": "ok"}
 
+# 数据库测试端点
+@app.get("/api/db-test")
+async def test_db_connection(db: Session = Depends(get_db)):
+    try:
+        # 检查数据库连接
+        db.execute("SELECT 1")
+        
+        # 获取表信息
+        from sqlalchemy import inspect
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        # 获取用户数量
+        user_count = db.query(User).count()
+        
+        # 获取摘要数量
+        summary_count = db.query(Summary).count()
+        
+        return {
+            "status": "connected",
+            "tables": tables,
+            "user_count": user_count,
+            "summary_count": summary_count,
+            "database_url": db.bind.url.render_as_string(hide_password=True)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 # CORS middleware to allow frontend requests
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(

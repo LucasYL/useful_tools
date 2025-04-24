@@ -7,6 +7,7 @@ import { SummaryTypeSelector } from '@/components/SummaryTypeSelector';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { VideoPlayer, TimelineViewer } from '@/components/VideoPlayer';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TranscriptEntry {
   text: string;
@@ -34,6 +35,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState<string>('short');
   const { language, setLanguage, t } = useLanguage();
+  const { isAuthenticated, token } = useAuth();
   const [currentTime, setCurrentTime] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
 
@@ -56,10 +58,11 @@ export default function Home() {
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds timeout
       
       // Call backend API
-      const response = await fetch('http://localhost:8000/api/summarize', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://useful-tools.onrender.com'}/api/summarize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(isAuthenticated && token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ 
           video_id: videoId,
@@ -180,6 +183,12 @@ export default function Home() {
               disabled={loading}
             />
           </div>
+          
+          {!isAuthenticated && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-700">
+              <p>{t('notLoggedInNote')}</p>
+            </div>
+          )}
         </div>
       </section>
       
