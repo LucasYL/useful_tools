@@ -99,10 +99,11 @@ def get_user_summaries(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     skip: int = 0,
-    limit: int = 100
+    limit: int = 100,
+    favorite_only: bool = False
 ):
     # 构建查询
-    summaries = db.query(
+    query = db.query(
         Summary.id,
         Summary.user_id,
         Summary.video_id,
@@ -116,9 +117,15 @@ def get_user_summaries(
         Video.youtube_id.label("video_youtube_id"),
         Video.thumbnail_url.label("video_thumbnail_url")
     ).join(Video, Summary.video_id == Video.id)\
-    .filter(Summary.user_id == current_user.id)\
-    .order_by(Summary.created_at.desc())\
-    .offset(skip).limit(limit).all()
+    .filter(Summary.user_id == current_user.id)
+    
+    # 如果请求只显示收藏的摘要
+    if favorite_only:
+        query = query.filter(Summary.is_favorite == True)
+    
+    # 添加排序、分页并执行查询
+    summaries = query.order_by(Summary.created_at.desc())\
+        .offset(skip).limit(limit).all()
     
     return summaries
 

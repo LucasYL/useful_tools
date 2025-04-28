@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { SummaryDisplay } from '@/components/SummaryDisplay';
+import { StarIcon, StarOutlineIcon } from '@/components/icons/StarIcons';
 
 // API基础URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://useful-tools.onrender.com';
@@ -106,6 +107,23 @@ export default function SummaryDetail() {
     }
   };
 
+  // 处理时间戳点击，跳转到视频相应位置
+  const handleSeek = (time: number) => {
+    console.log('跳转到时间戳', time);
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify({
+          event: 'command',
+          func: 'seekTo',
+          args: [time, true]
+        }), '*');
+      } catch (e) {
+        console.error('Error seeking:', e);
+      }
+    }
+  };
+
   // 未登录时显示提示
   if (!isAuthenticated) {
     return (
@@ -164,61 +182,65 @@ export default function SummaryDetail() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold truncate max-w-xl">{summary.video_title}</h1>
-          <div className="flex gap-4">
-            <button 
-              onClick={handleToggleFavorite}
-              className="flex items-center text-sm px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 transition-colors"
-            >
-              <span className="mr-2 text-yellow-500">{summary.is_favorite ? '★' : '☆'}</span>
-              {summary.is_favorite ? t('unfavorite') : t('favorite')}
-            </button>
-            <button 
-              onClick={handleDelete}
-              className="flex items-center text-sm px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              <span className="mr-2">🗑️</span>
-              {t('delete')}
-            </button>
-            <Link href="/history" className="flex items-center text-sm px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 transition-colors">
-              &larr; {t('backToHistory')}
-            </Link>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 mb-6 text-sm text-neutral-500">
-          <span className="px-2 py-1 bg-neutral-100 rounded-full">{summary.summary_type}</span>
-          <span className="px-2 py-1 bg-neutral-100 rounded-full">{summary.language}</span>
-          <span>{new Date(summary.created_at).toLocaleString()}</span>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 左侧 - 视频 */}
-          <div>
-            <VideoPlayer 
-              videoId={summary.video_youtube_id} 
-              onTimeUpdate={() => {}}
-            />
-          </div>
-          
-          {/* 右侧 - 摘要内容 */}
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-            <h2 className="text-xl font-medium mb-4">{t('summaryContent')}</h2>
-            <div className="prose max-w-none">
-              <SummaryDisplay
-                summary={summary.summary_text}
-                title={summary.video_title}
-                summaryType={summary.summary_type}
-                videoId={summary.video_youtube_id}
-                onSeek={() => {}}
-              />
+    <div className="container mx-auto py-8 flex flex-col lg:flex-row gap-8">
+      <div className="lg:w-2/3">
+        <VideoPlayer 
+          videoId={summary.video_youtube_id} 
+          onTimeUpdate={handleSeek} 
+        />
+      </div>
+      <div className="lg:w-1/3 sticky top-20 h-[calc(100vh-12rem)] overflow-y-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 mb-4">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <span className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+                {summary.summary_type === 'detailed' ? t('detailedSummary') : t('shortSummary')}
+              </span>
+              <h2 className="text-xl font-semibold text-neutral-900 mt-1">{summary.video_title}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleFavorite}
+                className="text-yellow-400 hover:text-yellow-500 transition-colors"
+                title={summary.is_favorite ? t('removeFromFavorites') : t('addToFavorites')}
+              >
+                {summary.is_favorite ? (
+                  <StarIcon className="h-6 w-6 fill-current" />
+                ) : (
+                  <StarOutlineIcon className="h-6 w-6" />
+                )}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="text-red-400 hover:text-red-500 transition-colors"
+                title={t('delete')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           </div>
+          
+          <div className="mb-4 flex justify-between">
+            <Link href="/history" className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center">
+              &larr; {t('backToHistory')}
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
+              <span className="px-2 py-1 bg-neutral-100 rounded-full">{summary.language}</span>
+              <span>{new Date(summary.created_at).toLocaleDateString()}</span>
+            </div>
+          </div>
+          
+          <SummaryDisplay
+            summary={summary.summary_text}
+            title={summary.video_title}
+            summaryType={summary.summary_type}
+            videoId={summary.video_youtube_id}
+            onSeek={handleSeek}
+          />
         </div>
       </div>
-    </main>
+    </div>
   );
 } 
