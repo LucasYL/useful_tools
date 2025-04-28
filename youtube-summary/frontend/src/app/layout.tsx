@@ -11,7 +11,7 @@ const Navbar = dynamic(() => import('../components/Navbar'), { ssr: false });
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'YouTube Video Summarizer',
+  title: 'Clipnote',
   description: 'Get AI-powered summaries of YouTube videos',
 };
 

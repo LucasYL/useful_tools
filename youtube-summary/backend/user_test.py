@@ -95,6 +95,9 @@ def get_user_info(token):
             print(f"用户名: {user_info.get('username')}")
             print(f"电子邮箱: {user_info.get('email')}")
             print(f"创建时间: {user_info.get('created_at')}")
+            print(f"更新时间: {user_info.get('updated_at')}")
+            if user_info.get('api_key'):
+                print(f"API密钥: {user_info.get('api_key')[:8]}...")
             return user_info
         else:
             print(f"获取用户信息失败: {response.status_code}")

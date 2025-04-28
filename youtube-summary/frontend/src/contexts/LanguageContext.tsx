@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Define translation texts
 const translations = {
   'en': {
-    'appTitle': 'YouTube Video Summarizer',
+    'appTitle': 'Clipnote',
     'videoInput': 'Enter YouTube video URL',
     'summarize': 'Summarize',
     'processing': 'Processing video...',
@@ -14,6 +14,7 @@ const translations = {
     'shortSummary': 'Short Summary',
     'detailedSummary': 'Detailed Summary',
     'language': 'Language',
+    'outputLanguage': 'Output Language',
     'transcript': 'Transcript',
     'clickTimestampToJump': 'Click on timestamps to jump to that point in the video',
     'timestampJumpTooltip': 'Jump to timestamp',
@@ -71,7 +72,7 @@ const translations = {
     'backToHistory': 'Back to History'
   },
   'zh': {
-    'appTitle': 'YouTube视频摘要工具',
+    'appTitle': 'Clipnote',
     'videoInput': '输入YouTube视频链接',
     'summarize': '生成摘要',
     'processing': '正在处理视频...',
@@ -81,6 +82,7 @@ const translations = {
     'shortSummary': '简短摘要',
     'detailedSummary': '详细摘要',
     'language': '语言',
+    'outputLanguage': '输出语言',
     'transcript': '字幕文本',
     'clickTimestampToJump': '点击时间戳可以跳转到视频对应位置',
     'timestampJumpTooltip': '跳转到时间点',

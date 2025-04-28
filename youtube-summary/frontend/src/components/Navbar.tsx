@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,18 @@ export default function Navbar() {
     setLanguage(language === 'en' ? 'zh' : 'en');
   };
 
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setMenuOpen(false);
+    };
+    
+    window.addEventListener('popstate', handleRouteChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, []);
+
   return (
     <nav className="sticky top-0 z-20 bg-white shadow-sm border-b border-neutral-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -29,7 +41,7 @@ export default function Navbar() {
           {/* Logo and main nav */}
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
-              <span className="font-bold text-xl text-neutral-900">YouSummary</span>
+              <span className="font-bold text-xl text-neutral-900">Clipnote</span>
             </Link>
           </div>
 

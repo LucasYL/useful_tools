@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 # 导入数据库相关模块
 from db import Base, engine, get_db
-from models import User, Summary
+from models import User, Summary, Video, Tag, VideoTag
 from auth import router as auth_router, get_current_user_optional
 from summary_routes import router as summary_router, SummaryCreate
 
@@ -215,33 +215,53 @@ async def summarize_video(
         
         # 如果用户已登录，保存摘要到数据库
         if current_user:
-            # 检查是否已存在相同视频的摘要
-            existing_summary = db.query(Summary).filter(
-                Summary.user_id == current_user.id,
-                Summary.video_id == video_id,
-                Summary.summary_type == request.summary_type,
-                Summary.language == request.language
-            ).first()
-            
-            # 已存在则更新，否则创建新记录
-            if existing_summary:
-                existing_summary.summary_text = summary
-                existing_summary.video_title = metadata["title"]
-                existing_summary.created_at = datetime.utcnow()
-                db.commit()
-            else:
-                # 创建新摘要
-                db_summary = Summary(
-                    user_id=current_user.id,
-                    video_id=video_id,
-                    video_title=metadata["title"],
-                    summary_text=summary,
-                    summary_type=request.summary_type,
-                    language=request.language
-                )
-                db.add(db_summary)
-                db.commit()
-                print(f"[DEBUG] Summary saved to database for user {current_user.username}")
+            try:
+                # 查找或创建视频记录
+                video_db = db.query(Video).filter(Video.youtube_id == video_id).first()
+                
+                if not video_db:
+                    # 创建新视频记录
+                    video_db = Video(
+                        youtube_id=video_id,
+                        title=metadata["title"],
+                        channel=metadata.get("channel", ""),
+                        duration=int(video_duration) if 'video_duration' in locals() else None,
+                        thumbnail_url=metadata.get("thumbnail_url", "")
+                    )
+                    db.add(video_db)
+                    db.commit()
+                    db.refresh(video_db)
+                
+                # 检查是否已存在该用户对此视频的摘要
+                existing_summary = db.query(Summary).filter(
+                    Summary.user_id == current_user.id,
+                    Summary.video_id == video_db.id
+                ).first()
+                
+                # 已存在则更新，否则创建新记录
+                if existing_summary:
+                    existing_summary.summary_text = summary
+                    existing_summary.transcript_text = enhanced_text
+                    existing_summary.summary_type = request.summary_type
+                    existing_summary.language = request.language
+                    db.commit()
+                    print(f"[DEBUG] Summary updated for user {current_user.username}")
+                else:
+                    # 创建新摘要
+                    db_summary = Summary(
+                        user_id=current_user.id,
+                        video_id=video_db.id,
+                        summary_text=summary,
+                        transcript_text=enhanced_text,
+                        summary_type=request.summary_type,
+                        language=request.language
+                    )
+                    db.add(db_summary)
+                    db.commit()
+                    print(f"[DEBUG] Summary saved to database for user {current_user.username}")
+            except Exception as db_err:
+                print(f"[DEBUG] Error saving summary to database: {str(db_err)}")
+                # Continue even if database save fails
         
         # Return response
         return {

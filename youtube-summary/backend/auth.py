@@ -21,9 +21,11 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     created_at: datetime
+    updated_at: datetime
+    api_key: Optional[str] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -136,8 +138,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # 更新最后登录时间
-    user.last_login = datetime.utcnow()
+    # 更新用户的updated_at字段（登录时间）
+    user.updated_at = datetime.utcnow()
     db.commit()
     
     # 创建访问令牌
