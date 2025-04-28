@@ -184,7 +184,7 @@ def delete_summary(
 
 # 更新收藏状态
 @router.put("/{summary_id}/favorite", response_model=SummaryResponse)
-def toggle_favorite(
+def toggle_favorite_put(
     summary_id: int,
     favorite_data: FavoriteUpdate,
     current_user: User = Depends(get_current_user),
@@ -205,6 +205,33 @@ def toggle_favorite(
     
     # 更新收藏状态
     summary.is_favorite = favorite_data.is_favorite
+    db.commit()
+    db.refresh(summary)
+    
+    return summary
+
+# 支持PATCH方法的收藏状态切换（前端使用）
+@router.patch("/{summary_id}/favorite", response_model=SummaryResponse)
+def toggle_favorite_patch(
+    summary_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 查询摘要，确保是当前用户的
+    summary = db.query(Summary).filter(
+        Summary.id == summary_id,
+        Summary.user_id == current_user.id
+    ).first()
+    
+    # 检查是否存在
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Summary not found"
+        )
+    
+    # 切换收藏状态
+    summary.is_favorite = not summary.is_favorite
     db.commit()
     db.refresh(summary)
     

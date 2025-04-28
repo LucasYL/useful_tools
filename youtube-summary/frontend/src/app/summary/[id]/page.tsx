@@ -22,6 +22,7 @@ interface Summary {
   language: string;
   created_at: string;
   is_favorite: boolean;
+  video_youtube_id: string;
 }
 
 export default function SummaryDetail() {
@@ -50,6 +51,7 @@ export default function SummaryDetail() {
           }
         });
         
+        console.log('获取到摘要数据:', response.data);
         setSummary(response.data);
       } catch (err: any) {
         console.error('Failed to fetch summary:', err);
@@ -197,7 +199,7 @@ export default function SummaryDetail() {
           {/* 左侧 - 视频 */}
           <div>
             <VideoPlayer 
-              videoId={summary.video_id} 
+              videoId={summary.video_youtube_id} 
               onTimeUpdate={() => {}}
             />
           </div>
@@ -210,7 +212,7 @@ export default function SummaryDetail() {
                 summary={summary.summary_text}
                 title={summary.video_title}
                 summaryType={summary.summary_type}
-                videoId={summary.video_id}
+                videoId={summary.video_youtube_id}
                 onSeek={() => {}}
               />
             </div>

@@ -178,10 +178,15 @@ export default function History() {
             {summaries.map(summary => (
               <div key={summary.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 flex flex-col">
                 <div className="flex justify-between items-start mb-3">
-                  <h2 className="text-lg font-medium text-neutral-900 line-clamp-2">{summary.video_title}</h2>
+                  <Link href={`/summary/${summary.id}`} className="hover:text-blue-600">
+                    <h2 className="text-lg font-medium text-neutral-900 line-clamp-2">
+                      {summary.video_title}
+                    </h2>
+                  </Link>
                   <button 
                     onClick={() => handleToggleFavorite(summary.id)}
                     className="text-xl text-yellow-500 hover:text-yellow-600"
+                    aria-label={summary.is_favorite ? t('unfavorite') : t('favorite')}
                   >
                     {summary.is_favorite ? '★' : '☆'}
                   </button>
