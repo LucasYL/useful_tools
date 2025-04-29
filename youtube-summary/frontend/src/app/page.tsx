@@ -258,27 +258,85 @@ export default function Home() {
   // 如果用户未登录，显示登录页面
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white font-sans flex flex-col items-center justify-center p-8">
-        <div className="max-w-xl w-full bg-white rounded-2xl shadow-lg border border-neutral-100 p-10 text-center">
-          <h1 className="text-3xl font-semibold mb-8 text-neutral-800">
-            {t('welcomeToClipnote')}
-          </h1>
-          <p className="mb-10 text-lg text-neutral-600">
-            {t('loginRequiredMessage')}
-          </p>
-          <div className="flex flex-col space-y-4">
-            <Link 
-              href="/login"
-              className="px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg shadow-sm"
-            >
-              {t('login')}
-            </Link>
-            <Link 
-              href="/register"
-              className="px-6 py-4 bg-neutral-100 text-neutral-800 rounded-lg hover:bg-neutral-200 transition-colors text-lg"
-            >
-              {t('createAccount')}
-            </Link>
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 font-sans flex items-center justify-center p-4 sm:p-8 overflow-hidden relative">
+        <div className="absolute inset-0 z-0 overflow-hidden opacity-20">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl"></div>
+          <div className="absolute top-1/4 -right-20 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl"></div>
+          <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-pink-400 rounded-full mix-blend-multiply filter blur-3xl"></div>
+        </div>
+
+        <div className="z-10 w-full max-w-6xl flex flex-col md:flex-row items-stretch gap-8 lg:gap-12">
+          {/* Left Section: Product Overview */}
+          <div className="w-full md:w-7/12 space-y-6 p-6 md:p-0">
+            <div className="mb-10">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Clipnote
+              </h1>
+              <p className="text-xl md:text-2xl font-medium text-neutral-700 mb-8">
+                {t('intelligentVideoSummarizer')}
+              </p>
+              <div className="space-y-8 text-neutral-600">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-10 h-10 mt-1 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-lg text-neutral-800">{t('instantSummaries')}</p>
+                    <p className="text-neutral-600">{t('instantSummariesDesc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-10 h-10 mt-1 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-lg text-neutral-800">{t('timeStampedOutlines')}</p>
+                    <p className="text-neutral-600">{t('timeStampedOutlinesDesc')}</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-10 h-10 mt-1 flex items-center justify-center rounded-full bg-purple-100 text-purple-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-lg text-neutral-800">{t('summaryManagement')}</p>
+                    <p className="text-neutral-600">{t('summaryManagementDesc')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right Section: Login/Register */}
+          <div className="w-full md:w-5/12">
+            <div className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl border border-neutral-100 p-8 sm:p-10">
+              <h2 className="text-2xl font-bold mb-6 text-neutral-800">
+                {t('welcomeToClipnote')}
+              </h2>
+              <p className="mb-8 text-neutral-600">
+                {t('loginRequiredMessage')}
+              </p>
+              <div className="space-y-4">
+                <Link 
+                  href="/login"
+                  className="block w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium text-center shadow-lg shadow-blue-200"
+                >
+                  {t('login')}
+                </Link>
+                <Link 
+                  href="/register"
+                  className="block w-full py-3.5 px-4 bg-white text-neutral-800 border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-all duration-200 font-medium text-center shadow-md"
+                >
+                  {t('createAccount')}
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -385,6 +443,15 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <div className="mt-6 text-center">
+        <Link href="/" className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          {t('backToHome')}
+        </Link>
+      </div>
     </main>
   );
 } 

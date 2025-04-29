@@ -21,6 +21,15 @@ module.exports = {
           900: '#0c4a6e',
         },
       },
+      animation: {
+        'fadeIn': 'fadeIn 0.3s ease-in-out forwards',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+      },
     },
   },
   plugins: [],
