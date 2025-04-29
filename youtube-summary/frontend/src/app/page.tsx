@@ -258,24 +258,24 @@ export default function Home() {
   // 如果用户未登录，显示登录页面
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-neutral-50 text-neutral-900 font-sans flex flex-col items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center">
-          <h1 className="text-2xl font-semibold mb-6">
+      <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white font-sans flex flex-col items-center justify-center p-8">
+        <div className="max-w-xl w-full bg-white rounded-2xl shadow-lg border border-neutral-100 p-10 text-center">
+          <h1 className="text-3xl font-semibold mb-8 text-neutral-800">
             {t('welcomeToClipnote')}
           </h1>
-          <p className="mb-8 text-neutral-600">
+          <p className="mb-10 text-lg text-neutral-600">
             {t('loginRequiredMessage')}
           </p>
-          <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-4">
             <Link 
               href="/login"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              className="px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg shadow-sm"
             >
               {t('login')}
             </Link>
             <Link 
               href="/register"
-              className="px-4 py-2 bg-neutral-100 text-neutral-800 rounded-md hover:bg-neutral-200 transition-colors"
+              className="px-6 py-4 bg-neutral-100 text-neutral-800 rounded-lg hover:bg-neutral-200 transition-colors text-lg"
             >
               {t('createAccount')}
             </Link>
@@ -286,23 +286,23 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
+    <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white font-sans">
       {/* 正常主页内容，只有登录用户能看到 */}
       {/* Header with glass effect */}
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-neutral-50/80 border-b border-neutral-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <h1 className="text-2xl font-semibold text-center">
+      <header className="sticky top-0 z-10 backdrop-blur-md bg-white/80 border-b border-neutral-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 py-6">
+          <h1 className="text-3xl font-semibold text-center text-neutral-800">
             YouTube Summarizer
           </h1>
         </div>
       </header>
 
       {/* Input Section */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+      <section className="max-w-3xl mx-auto px-6 sm:px-8 py-12">
+        <div className="bg-white rounded-2xl shadow-lg border border-neutral-100 p-8">
           <VideoInput onSubmit={handleSubmit} isLoading={loading} />
           
-          <div className="mt-4 flex flex-wrap gap-4 justify-center">
+          <div className="mt-8 flex flex-wrap gap-6 justify-center">
             <SummaryTypeSelector 
               selectedType={summaryType as any} 
               onChange={setSummaryType} 
@@ -319,29 +319,29 @@ export default function Home() {
       </section>
       
       {loading && (
-        <div className="max-w-md mx-auto mt-8 px-4 text-center">
+        <div className="max-w-xl mx-auto mt-12 px-6 text-center">
           <div className="animate-pulse">
-            <div className="h-2.5 bg-neutral-300 rounded-full w-48 mb-4 mx-auto"></div>
-            <div className="h-2 bg-neutral-300 rounded-full max-w-[360px] mb-2.5 mx-auto"></div>
-            <div className="h-2 bg-neutral-300 rounded-full mb-2.5 mx-auto"></div>
+            <div className="h-3 bg-neutral-200 rounded-full w-64 mb-6 mx-auto"></div>
+            <div className="h-2.5 bg-neutral-200 rounded-full max-w-[480px] mb-4 mx-auto"></div>
+            <div className="h-2.5 bg-neutral-200 rounded-full mb-4 mx-auto"></div>
           </div>
-          <p className="mt-4 text-lg font-medium text-neutral-800">{t('processing')}</p>
-          <p className="text-sm text-neutral-500">{t('processingNote')}</p>
+          <p className="mt-6 text-xl font-medium text-neutral-800">{t('processing')}</p>
+          <p className="text-base text-neutral-500 mt-2">{t('processingNote')}</p>
         </div>
       )}
       
       {error && (
-        <div className="max-w-md mx-auto mt-8 px-4">
-          <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-center">
-            <p className="font-medium text-red-800">{t('error')}</p>
+        <div className="max-w-xl mx-auto mt-12 px-6">
+          <div className="p-8 rounded-xl bg-red-50 border border-red-100 text-center shadow-sm">
+            <p className="font-medium text-xl text-red-800 mb-2">{t('error')}</p>
             <p className="text-red-700">{error}</p>
           </div>
         </div>
       )}
       
       {summaryData && !loading && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-8">
+        <section className="max-w-7xl mx-auto px-6 sm:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-12">
             {/* Left column - Video */}
             <div className="flex flex-col w-full max-w-full">
               <VideoPlayer 
@@ -349,10 +349,10 @@ export default function Home() {
                 onTimeUpdate={handleTimeUpdate}
               />
               
-              <div className="mt-4 flex justify-end">
+              <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => setShowTranscript(!showTranscript)}
-                  className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
+                  className="px-5 py-3 text-base font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors shadow-sm"
                 >
                   {showTranscript ? t('hideTranscript') : t('showTranscript')}
                 </button>
@@ -360,7 +360,7 @@ export default function Home() {
               
               {/* Transcript (hidden by default) */}
               {showTranscript && (
-                <div className="mt-4">
+                <div className="mt-6">
                   <TimelineViewer 
                     transcript={summaryData.transcript} 
                     videoId={summaryData.videoId}
@@ -371,8 +371,8 @@ export default function Home() {
             </div>
             
             {/* Right column - Summary */}
-            <div className="h-[calc(100vh-12rem)] sticky top-20">
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 h-full overflow-y-auto">
+            <div className="h-[calc(100vh-12rem)] sticky top-24">
+              <div className="bg-white rounded-2xl shadow-lg border border-neutral-100 p-8 h-full overflow-y-auto">
                 <SummaryDisplay
                   summary={summaryData.summary}
                   title={summaryData.title}

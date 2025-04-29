@@ -40,7 +40,7 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
     
     if (parts.length <= 1) {
       // If no timestamp format is matched, return the original text
-      return <p className="whitespace-pre-wrap">{text}</p>;
+      return <p className="whitespace-pre-wrap leading-relaxed text-neutral-800">{text}</p>;
     }
     
     const elements = [];
@@ -51,7 +51,7 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
         // This is regular text or paragraph heading
         if (parts[i].trim()) {
           elements.push(
-            <p key={`text-${i}`} className="mb-4 text-neutral-700">
+            <p key={`text-${i}`} className="mb-5 text-neutral-800 leading-relaxed">
               {parts[i]}
             </p>
           );
@@ -62,23 +62,23 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
         const content = parts[i + 1] || '';
         
         elements.push(
-          <div key={`section-${i}`} className="mb-6">
-            <div className="flex items-center mb-2">
+          <div key={`section-${i}`} className="mb-7 animate-fadeIn">
+            <div className="flex items-center mb-3">
               <button
                 onClick={() => handleTimestampClick(timestamp)}
-                className="bg-neutral-100 text-neutral-700 text-sm font-medium mr-2 px-2.5 py-1 rounded-full hover:bg-neutral-200 transition-colors flex items-center cursor-pointer"
+                className="bg-blue-50 text-blue-700 text-xs font-semibold mr-3 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors flex items-center cursor-pointer shadow-sm"
                 title={t('timestampJumpTooltip')}
               >
-                <span className="mr-1">▶</span>
+                <span className="mr-1.5">▶</span>
                 {timestamp}
               </button>
-              <h4 className="font-semibold text-neutral-900">
+              <h4 className="font-semibold text-neutral-900 text-base">
                 {content.split('\n')[0]?.trim()}
               </h4>
             </div>
-            <div className="pl-4 border-l-2 border-neutral-200">
+            <div className="pl-5 border-l-2 border-neutral-200 hover:border-blue-300 transition-colors">
               {content.split('\n').slice(1).map((line, lineIndex) => (
-                <p key={`line-${i}-${lineIndex}`} className="mb-2 text-neutral-700">
+                <p key={`line-${i}-${lineIndex}`} className="mb-3 text-neutral-700 leading-relaxed">
                   {line}
                 </p>
               ))}
@@ -92,17 +92,17 @@ export function SummaryDisplay({ summary, title, summaryType, videoId, onSeek }:
       i++;
     }
     
-    return <div>{elements}</div>;
+    return <div className="space-y-2">{elements}</div>;
   };
   
   return (
     <>
       {videoId && onSeek && (
-        <div className="mb-4 flex items-center text-xs text-neutral-500 bg-neutral-50 p-2 rounded-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+        <div className="mb-5 flex items-center text-xs text-neutral-600 bg-blue-50 p-3 rounded-lg border border-blue-100 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
-          <span>{t('clickTimestampToJump')}</span>
+          <span className="font-medium">{t('clickTimestampToJump')}</span>
         </div>
       )}
       

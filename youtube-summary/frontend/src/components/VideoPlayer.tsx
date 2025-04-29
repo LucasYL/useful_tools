@@ -129,38 +129,38 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
   // Embed video using iframe
   return (
     <div className="flex flex-col w-full">
-      <h2 className="text-xl font-semibold mb-4">{t('video')}</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-neutral-800">{t('video')}</h2>
       
       {!videoId && (
-        <div className="aspect-video w-full rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden">
+        <div className="aspect-video w-full rounded-xl bg-neutral-50 flex items-center justify-center overflow-hidden shadow-inner border border-neutral-100">
           <div className="text-neutral-500 p-8 text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            <p>{t('noVideoId')}</p>
+            <p className="text-lg">{t('noVideoId')}</p>
           </div>
         </div>
       )}
       
       {videoId && !isPlayerReady && !playerError && (
-        <div className="aspect-video w-full rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden">
+        <div className="aspect-video w-full rounded-xl bg-neutral-50 flex items-center justify-center overflow-hidden shadow-inner border border-neutral-100">
           <div className="flex flex-col items-center text-neutral-500 p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-300 mb-4"></div>
-            <p className="font-medium mb-2">{t('loadingPlayer')}</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-neutral-300 mb-6"></div>
+            <p className="font-medium mb-4 text-lg">{t('loadingPlayer')}</p>
             {loadTimeout && (
               <>
-                <p className="text-sm text-amber-600 mb-3">
+                <p className="text-base text-amber-600 mb-5">
                   {t('playerLoadingTimeout')}
                 </p>
                 <button 
                   onClick={handleRetryLoad}
-                  className="px-4 py-2 bg-neutral-200 text-neutral-700 rounded-full hover:bg-neutral-300 transition-colors mb-3 text-sm font-medium"
+                  className="px-5 py-3 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors mb-5 text-base font-medium shadow-sm"
                 >
                   {t('retryLoading')}
                 </button>
               </>
             )}
-            <p className="text-sm">
+            <p className="text-base">
               {t('videoLoadingFallback')}
               <a 
                 href={`https://www.youtube.com/watch?v=${videoId}`} 
@@ -176,18 +176,18 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       )}
       
       {playerError && (
-        <div className="aspect-video w-full rounded-xl bg-red-50 flex items-center justify-center overflow-hidden">
+        <div className="aspect-video w-full rounded-xl bg-red-50 flex items-center justify-center overflow-hidden shadow-inner border border-red-100">
           <div className="text-red-500 p-8 text-center max-w-md">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="font-medium mb-2">{t('videoLoadError')}</p>
-            <p className="mb-4 text-sm">{playerError}</p>
+            <p className="font-medium mb-4 text-xl">{t('videoLoadError')}</p>
+            <p className="mb-6 text-base">{playerError}</p>
             <a 
               href={`https://www.youtube.com/watch?v=${videoId}`} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="inline-block px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-sm font-medium text-sm"
+              className="inline-block px-5 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-sm font-medium text-base"
             >
               {t('watchOnYouTube')}
             </a>
@@ -196,7 +196,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
       )}
       
       {videoId && (
-        <div className={`aspect-video w-full rounded-xl overflow-hidden bg-black shadow-sm ${!isPlayerReady && playerError === null ? 'hidden' : ''}`}>
+        <div className={`aspect-video w-full rounded-xl overflow-hidden bg-black shadow-md ${!isPlayerReady && playerError === null ? 'hidden' : ''}`}>
           <iframe 
             ref={iframeRef}
             width="100%" 
