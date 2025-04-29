@@ -128,7 +128,7 @@ export function VideoPlayer({ videoId, onTimeUpdate }: VideoPlayerProps) {
 
   // Embed video using iframe
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full">
       <h2 className="text-xl font-semibold mb-4">{t('video')}</h2>
       
       {!videoId && (

@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from db import Base
-from models import User, Summary
+from database.db import Base
+from database.models import User, Summary, Video, Tag, VideoTag
 
 # 加载环境变量
 load_dotenv()

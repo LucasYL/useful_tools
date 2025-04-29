@@ -51,7 +51,7 @@ export default function Navbar() {
               href="/"
               className="px-3 py-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md"
             >
-              {t('appTitle')}
+              {t('createNew')}
             </Link>
             
             {isAuthenticated && (
@@ -144,7 +144,7 @@ export default function Navbar() {
               className="block px-3 py-2 text-base font-medium text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 rounded-md"
               onClick={() => setMenuOpen(false)}
             >
-              {t('appTitle')}
+              {t('createNew')}
             </Link>
             
             {isAuthenticated && (

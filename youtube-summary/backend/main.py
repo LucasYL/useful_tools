@@ -1,21 +1,42 @@
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
-from youtube_transcript_api import YouTubeTranscriptApi
-from typing import List, Dict, Any, Optional
+import sys
 import os
 import re
 import subprocess
+from typing import Optional, List, Dict, Any
 import json
-from dotenv import load_dotenv
-from openai import OpenAI
-from datetime import datetime
-from sqlalchemy.orm import Session
+import traceback
 
-# 导入数据库相关模块
-from db import Base, engine, get_db
-from models import User, Summary, Video, Tag, VideoTag
-from auth import router as auth_router, get_current_user_optional
-from summary_routes import router as summary_router, SummaryCreate
+# 确保能找到模块
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from fastapi import FastAPI, Depends, HTTPException, Query, status, Form, Request
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+import openai
+from openai import OpenAI
+from dotenv import load_dotenv
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.formatters import TextFormatter
+
+# 更新导入路径
+from database.db import get_db, Base, engine
+from database.models import User, Video, Summary, Tag, VideoTag
+from auth.routes import router as auth_router, get_current_user, get_current_user_optional
+from auth.auth_utils import get_password_hash
+from utils.youtube_utils import extract_video_id, get_video_metadata, get_transcript, create_enhanced_text
+
+from summary_routes import router as summary_router
+
+# 加载环境变量
+load_dotenv()
+
+
+# 创建FastAPI实例
+app = FastAPI(title="YouTube Summary API", version="0.2.0")
+
+# 注册认证路由 - 添加前缀以匹配前端请求
+app.include_router(auth_router, prefix="/auth")
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
@@ -28,10 +49,6 @@ openai_api_key = os.getenv("OPENROUTER_API_KEY")
 if not openai_api_key:
     print("Warning: OPENROUTER_API_KEY not found in environment variables")
 
-app = FastAPI()
-
-# 注册路由
-app.include_router(auth_router, prefix="/auth")
 app.include_router(summary_router, prefix="/api/summaries")
 
 # Define request and response models

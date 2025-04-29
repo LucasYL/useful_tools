@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from typing import Optional
 
-from db import get_db
-from models import User
-from auth_utils import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from database.db import get_db
+from database.models import User
+from auth.auth_utils import verify_password, get_password_hash, create_access_token, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 # Pydantic模型
 class UserBase(BaseModel):

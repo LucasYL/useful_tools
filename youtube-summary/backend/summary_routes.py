@@ -4,9 +4,9 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
-from db import get_db
-from models import User, Summary, Video
-from auth import get_current_user
+from database.db import get_db
+from database.models import User, Summary, Video
+from auth.routes import get_current_user
 
 # Pydantic模型
 class SummaryBase(BaseModel):

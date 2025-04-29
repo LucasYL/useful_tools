@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { VideoInput } from '@/components/VideoInput';
 import { SummaryDisplay } from '@/components/SummaryDisplay';
 import { SummaryTypeSelector } from '@/components/SummaryTypeSelector';
@@ -8,6 +8,8 @@ import { SummaryLanguageSelector } from '@/components/SummaryLanguageSelector';
 import { VideoPlayer, TimelineViewer } from '@/components/VideoPlayer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface TranscriptEntry {
   text: string;
@@ -39,8 +41,23 @@ export default function Home() {
   const { isAuthenticated, token } = useAuth();
   const [currentTime, setCurrentTime] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
+  const router = useRouter();
+
+  // 如果用户未登录，重定向到登录页面
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // 不立即重定向，让用户看到提示信息
+      // router.push('/login');
+    }
+  }, [isAuthenticated]);
 
   const handleSubmit = async (url: string) => {
+    // 如果未登录，不允许提交
+    if (!isAuthenticated) {
+      setError(t('loginRequired'));
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -238,8 +255,39 @@ export default function Home() {
     setSummaryLanguage(languageCode);
   };
 
+  // 如果用户未登录，显示登录页面
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-neutral-50 text-neutral-900 font-sans flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center">
+          <h1 className="text-2xl font-semibold mb-6">
+            {t('welcomeToClipnote')}
+          </h1>
+          <p className="mb-8 text-neutral-600">
+            {t('loginRequiredMessage')}
+          </p>
+          <div className="flex flex-col space-y-3">
+            <Link 
+              href="/login"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+            >
+              {t('login')}
+            </Link>
+            <Link 
+              href="/register"
+              className="px-4 py-2 bg-neutral-100 text-neutral-800 rounded-md hover:bg-neutral-200 transition-colors"
+            >
+              {t('createAccount')}
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-neutral-50 text-neutral-900 font-sans">
+      {/* 正常主页内容，只有登录用户能看到 */}
       {/* Header with glass effect */}
       <header className="sticky top-0 z-10 backdrop-blur-md bg-neutral-50/80 border-b border-neutral-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
@@ -267,12 +315,6 @@ export default function Home() {
               disabled={loading}
             />
           </div>
-          
-          {!isAuthenticated && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-700">
-              <p>{t('notLoggedInNote')}</p>
-            </div>
-          )}
         </div>
       </section>
       
@@ -299,9 +341,9 @@ export default function Home() {
       
       {summaryData && !loading && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-8">
             {/* Left column - Video */}
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full max-w-full">
               <VideoPlayer 
                 videoId={summaryData.videoId} 
                 onTimeUpdate={handleTimeUpdate}
@@ -330,13 +372,15 @@ export default function Home() {
             
             {/* Right column - Summary */}
             <div className="h-[calc(100vh-12rem)] sticky top-20">
-              <SummaryDisplay
-                summary={summaryData.summary}
-                title={summaryData.title}
-                summaryType={summaryType}
-                videoId={summaryData.videoId}
-                onSeek={handleSeek}
-              />
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 h-full overflow-y-auto">
+                <SummaryDisplay
+                  summary={summaryData.summary}
+                  title={summaryData.title}
+                  summaryType={summaryType}
+                  videoId={summaryData.videoId}
+                  onSeek={handleSeek}
+                />
+              </div>
             </div>
           </div>
         </section>

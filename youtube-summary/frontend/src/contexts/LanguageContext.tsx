@@ -52,6 +52,11 @@ const translations = {
     'loginToViewSummary': 'Please login to view this summary',
     'backToHome': 'Back to Home',
     'logout': 'Log Out',
+    'welcomeToYTSum': 'Welcome to Clipnote',
+    'welcomeToClipnote': 'Welcome to Clipnote',
+    'loginRequiredMessage': 'Please log in to access the YouTube summarizer tool and create summaries.',
+    'createAccount': 'Create Account',
+    'createNew': 'Create New',
     // History translations
     'summaryHistory': 'Summary History',
     'showOnlyFavorites': 'Show only favorites',
@@ -120,6 +125,11 @@ const translations = {
     'loginToViewSummary': '请登录以查看此摘要',
     'backToHome': '返回首页',
     'logout': '退出登录',
+    'welcomeToYTSum': '欢迎使用Clipnote',
+    'welcomeToClipnote': '欢迎使用Clipnote',
+    'loginRequiredMessage': '请登录以使用YouTube摘要工具并创建摘要。',
+    'createAccount': '创建账号',
+    'createNew': '创建新摘要',
     // History translations
     'summaryHistory': '摘要历史',
     'showOnlyFavorites': '只显示收藏',
