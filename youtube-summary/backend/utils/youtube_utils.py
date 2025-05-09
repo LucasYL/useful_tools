@@ -2,46 +2,49 @@ import re
 import os
 import json
 import subprocess
-from typing import Dict, Any, List
+import requests
+import time
+from typing import Dict, Any, List, Optional, Tuple
 from youtube_transcript_api import YouTubeTranscriptApi
+import yt_dlp
 
 # Function to extract video ID from URL
 def extract_video_id(url: str) -> str:
     """
-    从YouTube URL中提取视频ID
+    Extract video ID from YouTube URL
     
     Args:
-        url: YouTube URL或直接的视频ID
+        url: YouTube URL or direct video ID
         
     Returns:
-        视频ID字符串
+        Video ID string
     """
     regex = r'(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})'
     match = re.search(regex, url)
     if match:
         return match.group(1)
-    return url  # 如果无法匹配，假设输入已经是视频ID
+    return url  # If no match, assume input is already a video ID
 
 # Function to get video metadata using yt-dlp
 def get_video_metadata(video_url: str) -> Dict[str, Any]:
     """
-    使用yt-dlp获取YouTube视频的元数据
+    Use yt-dlp to get YouTube video metadata
     
     Args:
-        video_url: YouTube URL或视频ID
+        video_url: YouTube URL or video ID
         
     Returns:
-        包含标题、描述和章节的字典
+        Dictionary containing title, description and chapters
         
     Raises:
-        Exception: 如果元数据获取失败
+        Exception: If metadata retrieval fails
     """
     try:
-        # 确保有一个完整的URL
+        # Ensure we have a complete URL
         if not video_url.startswith(('http://', 'https://')):
             video_url = f"https://www.youtube.com/watch?v={video_url}"
             
-        # 运行yt-dlp获取元数据
+        # Run yt-dlp to get metadata
         cmd = [
             'yt-dlp',
             '--skip-download',
@@ -52,26 +55,26 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
             video_url
         ]
         
-        # 执行命令
+        # Execute command
         result = subprocess.run(cmd, capture_output=True, text=True)
         
-        # 获取视频ID以查找信息文件
+        # Get video ID to find info file
         video_id = extract_video_id(video_url)
         info_filename = f"{video_id}.info.json"
         
-        # 读取信息文件
+        # Read info file
         if os.path.exists(info_filename):
             with open(info_filename, 'r') as f:
                 info = json.load(f)
                 
-            # 清理文件
+            # Clean up file
             os.remove(info_filename)
             
-            # 提取相关信息
+            # Extract relevant information
             title = info.get('title', 'Untitled Video')
             description = info.get('description', '')
             
-            # 提取章节
+            # Extract chapters
             chapters = []
             if 'chapters' in info and info['chapters']:
                 for chapter in info['chapters']:
@@ -88,7 +91,7 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
                 'channel': info.get('channel', '')
             }
         else:
-            # 如果未创建信息文件，尝试替代方法
+            # If info file wasn't created, try alternative method
             cmd = [
                 'yt-dlp',
                 '--skip-download',
@@ -100,11 +103,11 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
             if result.returncode == 0:
                 info = json.loads(result.stdout)
                 
-                # 提取相关信息
+                # Extract relevant information
                 title = info.get('title', 'Untitled Video')
                 description = info.get('description', '')
                 
-                # 提取章节
+                # Extract chapters
                 chapters = []
                 if 'chapters' in info and info['chapters']:
                     for chapter in info['chapters']:
@@ -125,70 +128,70 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
     except Exception as e:
         raise Exception(f"Error retrieving video metadata: {str(e)}")
 
-def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
+def get_transcript_with_youtube_api(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
     """
-    获取YouTube视频的文本转录，并在必要时进行采样以避免过大的数据量
+    Get YouTube video transcript using youtube_transcript_api
     
     Args:
-        video_id: YouTube视频ID
-        max_entries: 最大条目数，超过此数量将进行采样
-        max_chars: 最大字符数，超过此数量将进行裁剪
+        video_id: YouTube video ID
+        max_entries: Maximum number of entries, will sample if exceeded
+        max_chars: Maximum character count, will trim if exceeded
         
     Returns:
-        包含文本、开始时间和持续时间的字典列表
+        List of dictionaries containing text, start time and duration
         
     Raises:
-        Exception: 如果获取文本转录失败
+        Exception: If transcript retrieval fails
     """
     try:
-        # 获取原始转录
+        # Get raw transcript
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         
-        # 检查transcript长度
-        print(f"原始transcript长度: {len(transcript)} 条")
+        # Check transcript length
+        print(f"Original transcript length: {len(transcript)} entries")
         total_duration = 0
         if transcript and len(transcript) > 0:
             last_entry = transcript[-1]
             total_duration = last_entry['start'] + last_entry['duration']
-            print(f"根据transcript估计视频时长: {int(total_duration // 60)}:{int(total_duration % 60):02d}")
+            print(f"Estimated video duration: {int(total_duration // 60)}:{int(total_duration % 60):02d}")
 
-        # 计算transcript的总文本长度
+        # Calculate total text length
         transcript_text_length = sum(len(entry.get('text', '')) for entry in transcript)
-        print(f"原始transcript文本总长度: {transcript_text_length} 字符")
+        print(f"Original transcript text length: {transcript_text_length} characters")
 
-        # 当transcript过长时，需要采样
+        # Sample if transcript is too long
         if len(transcript) > max_entries or transcript_text_length > max_chars:
-            print(f"Transcript太长，将进行采样")
+            print(f"Transcript too long, sampling will be applied")
             
-            # 确保覆盖整个视频范围
+            # Ensure we cover the entire video range
             if len(transcript) > max_entries:
-                # 计算采样间隔
+                # Calculate sampling interval
                 step = max(1, len(transcript) // max_entries)
-                print(f"采样间隔: 每{step}条取1条")
+                print(f"Sampling interval: 1 entry every {step} entries")
                 
-                # 采样
+                # Sample
                 sampled_transcript = []
-                # 确保取第一条和最后一条
+                # Ensure we include first entry
                 sampled_transcript.append(transcript[0])
                 
-                # 对中间部分进行采样
+                # Sample middle part
                 for i in range(step, len(transcript) - 1, step):
                     sampled_transcript.append(transcript[i])
                 
-                # 确保添加最后一条
+                # Ensure we include last entry
                 if transcript[-1] != sampled_transcript[-1]:
                     sampled_transcript.append(transcript[-1])
                 
                 transcript = sampled_transcript
-                print(f"采样后transcript长度: {len(transcript)} 条")
+                print(f"Sampled transcript length: {len(transcript)} entries")
                 
-                # 重新计算文本长度
+                # Recalculate text length
                 transcript_text_length = sum(len(entry.get('text', '')) for entry in transcript)
-                print(f"采样后transcript文本总长度: {transcript_text_length} 字符")
+                print(f"Sampled transcript text length: {transcript_text_length} characters")
             
-            # 如果总字符数仍然超出限制，进一步裁剪文本
+            # If still too many characters, trim text
             if transcript_text_length > max_chars:
-                print(f"采样后文本仍然过长，将进行字符级裁剪")
+                print(f"Text still too long, character trimming will be applied")
                 char_ratio = max_chars / transcript_text_length
                 for i in range(len(transcript)):
                     text = transcript[i].get('text', '')
@@ -196,38 +199,269 @@ def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000
                     if len(text) > max_entry_chars:
                         transcript[i]['text'] = text[:max_entry_chars] + "..."
                 
-                # 最终文本长度验证
+                # Final length verification
                 final_length = sum(len(entry.get('text', '')) for entry in transcript)
-                print(f"最终transcript文本总长度: {final_length} 字符")
+                print(f"Final transcript text length: {final_length} characters")
                 
         return transcript
                 
     except Exception as e:
-        raise Exception(f"Error retrieving transcript: {str(e)}")
+        raise Exception(f"Error retrieving transcript with youtube_transcript_api: {str(e)}")
+
+def parse_vtt_content(vtt_content: str) -> List[Dict[str, Any]]:
+    """
+    Parse VTT format subtitle content
+    
+    Args:
+        vtt_content: VTT format subtitle content
+        
+    Returns:
+        List of dictionaries with text, start and duration
+    """
+    entries = []
+    
+    # Remove VTT header
+    lines = vtt_content.strip().split('\n')
+    if lines and lines[0].startswith('WEBVTT'):
+        lines = lines[1:]
+    
+    # Process entries
+    i = 0
+    while i < len(lines):
+        # Skip empty lines
+        if not lines[i].strip():
+            i += 1
+            continue
+            
+        # Look for timestamp line
+        if '-->' in lines[i]:
+            # Parse time stamps
+            time_parts = lines[i].split('-->')
+            if len(time_parts) == 2:
+                start_str = time_parts[0].strip()
+                end_str = time_parts[1].strip().split(' ')[0]  # Remove styling
+                
+                # Convert to seconds
+                try:
+                    start = convert_timestamp_to_seconds(start_str)
+                    end = convert_timestamp_to_seconds(end_str)
+                    duration = end - start
+                    
+                    # Get text (may span multiple lines)
+                    text_lines = []
+                    i += 1
+                    while i < len(lines) and lines[i].strip() and '-->' not in lines[i]:
+                        text_lines.append(lines[i].strip())
+                        i += 1
+                    
+                    text = '\n'.join(text_lines)
+                    
+                    # Add entry
+                    entries.append({
+                        'text': text,
+                        'start': start,
+                        'duration': duration
+                    })
+                    continue
+                except Exception as e:
+                    print(f"Error parsing timestamp: {e}")
+        
+        i += 1
+    
+    return entries
+
+def convert_timestamp_to_seconds(timestamp: str) -> float:
+    """
+    Convert timestamp string to seconds
+    
+    Args:
+        timestamp: String in format HH:MM:SS.mmm or MM:SS.mmm
+        
+    Returns:
+        Seconds as float
+    """
+    parts = timestamp.replace(',', '.').split(':')
+    
+    if len(parts) == 3:  # HH:MM:SS.mmm
+        hours = int(parts[0])
+        minutes = int(parts[1])
+        seconds = float(parts[2])
+        return hours * 3600 + minutes * 60 + seconds
+    elif len(parts) == 2:  # MM:SS.mmm
+        minutes = int(parts[0])
+        seconds = float(parts[1])
+        return minutes * 60 + seconds
+    else:
+        raise ValueError(f"Invalid timestamp format: {timestamp}")
+
+def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
+    """
+    Get YouTube video transcript using yt-dlp
+    
+    Args:
+        video_id: YouTube video ID
+        max_entries: Maximum number of entries, will sample if exceeded
+        max_chars: Maximum character count, will trim if exceeded
+        
+    Returns:
+        List of dictionaries containing text, start time and duration
+        
+    Raises:
+        Exception: If transcript retrieval fails
+    """
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    
+    try:
+        # Configure yt-dlp options
+        ydl_opts = {
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'skip_download': True,
+            'quiet': True,
+        }
+        
+        # Extract information with yt-dlp
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+        # Get subtitle data
+        subtitles = {}
+        subtitle_type = "unknown"
+        if 'subtitles' in info and info['subtitles']:
+            subtitles = info['subtitles']
+            subtitle_type = "manual"
+        elif 'automatic_captions' in info and info['automatic_captions']:
+            subtitles = info['automatic_captions']
+            subtitle_type = "automatic"
+        else:
+            raise Exception("No subtitles found for this video")
+        
+        print(f"Found {subtitle_type} subtitles with yt-dlp")
+        
+        # Select language (prefer English, otherwise first available)
+        selected_lang = 'en' if 'en' in subtitles else list(subtitles.keys())[0]
+        formats = subtitles[selected_lang]
+        
+        print(f"Selected language: {selected_lang}")
+        
+        # Prefer VTT format if available
+        vtt_format = None
+        for fmt in formats:
+            if fmt.get('ext') == 'vtt':
+                vtt_format = fmt
+                break
+        
+        if not vtt_format:
+            # Fall back to any available format
+            vtt_format = formats[0]
+        
+        # Download the subtitle content
+        subtitle_url = vtt_format.get('url')
+        if not subtitle_url:
+            raise Exception("No subtitle URL found")
+            
+        response = requests.get(subtitle_url)
+        if response.status_code != 200:
+            raise Exception(f"Failed to download subtitles: HTTP {response.status_code}")
+            
+        subtitle_content = response.text
+        
+        # Parse the content based on format
+        subtitle_format = vtt_format.get('ext', 'unknown')
+        if subtitle_format == 'vtt':
+            transcript = parse_vtt_content(subtitle_content)
+        else:
+            # For now, we only support VTT - could add other formats as needed
+            raise Exception(f"Unsupported subtitle format: {subtitle_format}")
+        
+        # Apply sampling if needed (same logic as youtube_transcript_api)
+        if len(transcript) > max_entries:
+            step = max(1, len(transcript) // max_entries)
+            sampled_transcript = [transcript[0]]
+            for i in range(step, len(transcript) - 1, step):
+                sampled_transcript.append(transcript[i])
+            if transcript[-1] != sampled_transcript[-1]:
+                sampled_transcript.append(transcript[-1])
+            transcript = sampled_transcript
+            
+        # Trim text if needed
+        transcript_text_length = sum(len(entry.get('text', '')) for entry in transcript)
+        if transcript_text_length > max_chars:
+            char_ratio = max_chars / transcript_text_length
+            for i in range(len(transcript)):
+                text = transcript[i].get('text', '')
+                max_entry_chars = int(len(text) * char_ratio)
+                if len(text) > max_entry_chars:
+                    transcript[i]['text'] = text[:max_entry_chars] + "..."
+        
+        return transcript
+        
+    except Exception as e:
+        raise Exception(f"Error retrieving transcript with yt-dlp: {str(e)}")
+
+# Define global methods list for transcript retrieval
+# This allows us to modify it in tests
+methods = [
+    ("youtube_transcript_api", get_transcript_with_youtube_api),
+    ("yt-dlp", get_transcript_with_ytdlp)
+]
+
+def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
+    """
+    Get YouTube video transcript with intelligent fallback
+    Tries youtube_transcript_api first, then falls back to yt-dlp if needed
+    
+    Args:
+        video_id: YouTube video ID
+        max_entries: Maximum number of entries
+        max_chars: Maximum character count
+        
+    Returns:
+        List of dictionaries containing text, start and duration
+        
+    Raises:
+        Exception: If all transcript retrieval methods fail
+    """
+    errors = []
+    for name, method in methods:
+        try:
+            print(f"Trying to get transcript using {name}...")
+            start_time = time.time()
+            transcript = method(video_id, max_entries, max_chars)
+            elapsed_time = time.time() - start_time
+            print(f"Successfully retrieved transcript using {name} in {elapsed_time:.2f} seconds")
+            return transcript
+        except Exception as e:
+            error_message = str(e)
+            print(f"Failed with {name}: {error_message}")
+            errors.append(f"{name}: {error_message}")
+    
+    # If we get here, all methods failed
+    raise Exception(f"All transcript retrieval methods failed: {'; '.join(errors)}")
 
 def create_enhanced_text(transcript: List[Dict[str, Any]]) -> str:
     """
-    从transcript创建带有时间戳标记的增强文本
+    Create enhanced text with timestamp markers from transcript
     
     Args:
-        transcript: 包含文本转录条目的列表
+        transcript: List of transcript entries
         
     Returns:
-        带有时间戳标记的增强文本字符串
+        Enhanced text string with timestamp markers
     """
     enhanced_text = ""
     
-    # 将每个转录条目转换为带有时间戳标记的格式
+    # Convert each transcript entry to format with timestamp markers
     for entry in transcript:
-        # 将时间格式化为MM:SS
+        # Format time as MM:SS
         minutes = int(entry['start'] // 60)
         seconds = int(entry['start'] % 60)
         time_marker = f"[{minutes}:{seconds:02d}] "
         
-        # 添加带有时间戳标记的文本
+        # Add text with timestamp marker
         enhanced_text += time_marker + entry.get('text', '') + " "
     
-    # 添加视频结束时间戳
+    # Add video end timestamp
     if transcript and len(transcript) > 0:
         last_entry = transcript[-1]
         video_duration = last_entry['start'] + last_entry['duration']
