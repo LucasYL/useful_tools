@@ -195,8 +195,8 @@ async def summarize_video(
         # Extract video ID if a full URL was provided
         video_id = extract_video_id(request.video_id)
         
-        # Get transcript
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        # Get transcript using fallback (yt-dlp included)
+        transcript = get_transcript(video_id)
         
         # Get video metadata
         metadata = get_video_metadata(video_id)
@@ -422,18 +422,23 @@ Please create a concise summary of the video transcript. Your summary must:
 1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
 2. Divide the content into sections based on natural topic shifts in the transcript
 3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
-4. Present timestamps in STRICT chronological order (from beginning to end)
-5. LENGTH REQUIREMENT (CRITICAL):
+4. Each section must start with a short, descriptive section title summarizing the main point of that section.
+5. Present timestamps in STRICT chronological order (from beginning to end)
+6. LENGTH REQUIREMENT (CRITICAL):
    - For videos under 10 minutes: 40-60 words/characters per minute of video
    - For videos 10-30 minutes: 30-50 words/characters per minute (minimum 400 words total)
    - For videos 30-60 minutes: 25-40 words/characters per minute (minimum 900 words total)
    - For videos over 60 minutes: 20-30 words/characters per minute (minimum 1800 words total)
    - For Chinese content: character counts should be 1.5-2x the above word counts
-6. Focus on main points, keep explanations brief but comprehensive
+7. Focus on main points, keep explanations brief but comprehensive
 
 Example format:
-0:00 - Brief description of this section
-2:15 - Brief description of another section
+0:00 - [Section Title]
+Brief description of this section
+
+2:15 - [Section Title]
+Brief description of another section
+
 etc.
 
 CRITICAL RULES:
@@ -444,6 +449,7 @@ CRITICAL RULES:
 - Ensure balanced coverage - don't focus too much on early parts and rush through later parts.
 - YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
 - Never generate timestamps that exceed the video duration.
+- Each section must start with a short, descriptive section title summarizing the main point of that section.
 
 The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
             
@@ -458,14 +464,15 @@ Please provide a detailed summary of the video transcript. Your summary must:
 1. Cover the ENTIRE video content (unless the video is over 2 hours, then you may summarize the first 2 hours)
 2. Organize the summary by natural content sections (topic changes in the transcript)
 3. Start each section with an ACCURATE timestamp (MM:SS format) directly from the transcript markers
-4. Present timestamps in STRICT chronological order (from beginning to end)
-5. LENGTH REQUIREMENT (CRITICAL):
+4. Each section must start with a short, descriptive section title summarizing the main point of that section.
+5. Present timestamps in STRICT chronological order (from beginning to end)
+6. LENGTH REQUIREMENT (CRITICAL):
    - For videos under 10 minutes: 80-120 words/characters per minute of video
    - For videos 10-30 minutes: 60-90 words/characters per minute (minimum 800 words total)
    - For videos 30-60 minutes: 50-70 words/characters per minute (minimum 1800 words total)
    - For videos over 60 minutes: 40-60 words/characters per minute (minimum 3000 words total)
    - For Chinese content: character counts should be 1.5-2x the above word counts
-6. Include specific details, examples, and insights from each section
+7. Include specific details, examples, and insights from each section
 
 Your summary should follow this format:
 0:00 - [Section Title]
@@ -485,6 +492,7 @@ CRITICAL RULES:
 - YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
 - Include concrete details, quotes, examples and specific points from the video.
 - Never generate timestamps that exceed the video duration.
+- Each section must start with a short, descriptive section title summarizing the main point of that section.
 
 The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }

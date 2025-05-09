@@ -8,6 +8,27 @@ from typing import Dict, Any, List, Optional, Tuple
 from youtube_transcript_api import YouTubeTranscriptApi
 import yt_dlp
 
+# Unified cache directory for all transcript and info files
+CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'transcripts_cache')
+CACHE_EXPIRE_SECONDS = 7 * 24 * 3600  # 7 days
+
+def ensure_cache_dir():
+    if not os.path.exists(CACHE_DIR):
+        os.makedirs(CACHE_DIR)
+
+def clean_cache_dir():
+    """Delete files in cache dir older than CACHE_EXPIRE_SECONDS."""
+    ensure_cache_dir()
+    now = time.time()
+    for fname in os.listdir(CACHE_DIR):
+        fpath = os.path.join(CACHE_DIR, fname)
+        if os.path.isfile(fpath):
+            if now - os.path.getmtime(fpath) > CACHE_EXPIRE_SECONDS:
+                try:
+                    os.remove(fpath)
+                except Exception as e:
+                    print(f"[WARN] Failed to remove old cache file {fpath}: {e}")
+
 # Function to extract video ID from URL
 def extract_video_id(url: str) -> str:
     """
@@ -40,6 +61,8 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
         Exception: If metadata retrieval fails
     """
     try:
+        clean_cache_dir()
+        ensure_cache_dir()
         # Ensure we have a complete URL
         if not video_url.startswith(('http://', 'https://')):
             video_url = f"https://www.youtube.com/watch?v={video_url}"
@@ -60,7 +83,7 @@ def get_video_metadata(video_url: str) -> Dict[str, Any]:
         
         # Get video ID to find info file
         video_id = extract_video_id(video_url)
-        info_filename = f"{video_id}.info.json"
+        info_filename = os.path.join(CACHE_DIR, f"{video_id}.info.json")
         
         # Read info file
         if os.path.exists(info_filename):
@@ -309,22 +332,23 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
     Raises:
         Exception: If transcript retrieval fails
     """
+    import contextlib
     url = f"https://www.youtube.com/watch?v={video_id}"
-    
     try:
+        clean_cache_dir()
+        ensure_cache_dir()
         # Configure yt-dlp options
         ydl_opts = {
             'writesubtitles': True,
             'writeautomaticsub': True,
             'skip_download': True,
             'quiet': True,
+            'outtmpl': os.path.join(CACHE_DIR, '%(id)s.%(ext)s'),
         }
-        
-        # Extract information with yt-dlp
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            
-        # Get subtitle data
+        # Suppress yt-dlp warnings by redirecting stderr
+        with open(os.devnull, 'w') as devnull, contextlib.redirect_stderr(devnull):
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
         subtitles = {}
         subtitle_type = "unknown"
         if 'subtitles' in info and info['subtitles']:
@@ -335,46 +359,38 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             subtitle_type = "automatic"
         else:
             raise Exception("No subtitles found for this video")
-        
         print(f"Found {subtitle_type} subtitles with yt-dlp")
-        
-        # Select language (prefer English, otherwise first available)
         selected_lang = 'en' if 'en' in subtitles else list(subtitles.keys())[0]
         formats = subtitles[selected_lang]
-        
         print(f"Selected language: {selected_lang}")
-        
-        # Prefer VTT format if available
         vtt_format = None
         for fmt in formats:
             if fmt.get('ext') == 'vtt':
                 vtt_format = fmt
                 break
-        
         if not vtt_format:
-            # Fall back to any available format
             vtt_format = formats[0]
-        
-        # Download the subtitle content
         subtitle_url = vtt_format.get('url')
         if not subtitle_url:
             raise Exception("No subtitle URL found")
-            
-        response = requests.get(subtitle_url)
-        if response.status_code != 200:
-            raise Exception(f"Failed to download subtitles: HTTP {response.status_code}")
-            
-        subtitle_content = response.text
-        
-        # Parse the content based on format
+        # Save VTT to cache for possible reuse
+        vtt_cache_file = os.path.join(CACHE_DIR, f"{video_id}_{selected_lang}.vtt")
+        subtitle_content = None
+        if os.path.exists(vtt_cache_file):
+            with open(vtt_cache_file, 'r', encoding='utf-8') as f:
+                subtitle_content = f.read()
+        else:
+            response = requests.get(subtitle_url)
+            if response.status_code != 200:
+                raise Exception(f"Failed to download subtitles: HTTP {response.status_code}")
+            subtitle_content = response.text
+            with open(vtt_cache_file, 'w', encoding='utf-8') as f:
+                f.write(subtitle_content)
         subtitle_format = vtt_format.get('ext', 'unknown')
         if subtitle_format == 'vtt':
             transcript = parse_vtt_content(subtitle_content)
         else:
-            # For now, we only support VTT - could add other formats as needed
             raise Exception(f"Unsupported subtitle format: {subtitle_format}")
-        
-        # Apply sampling if needed (same logic as youtube_transcript_api)
         if len(transcript) > max_entries:
             step = max(1, len(transcript) // max_entries)
             sampled_transcript = [transcript[0]]
@@ -383,8 +399,6 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             if transcript[-1] != sampled_transcript[-1]:
                 sampled_transcript.append(transcript[-1])
             transcript = sampled_transcript
-            
-        # Trim text if needed
         transcript_text_length = sum(len(entry.get('text', '')) for entry in transcript)
         if transcript_text_length > max_chars:
             char_ratio = max_chars / transcript_text_length
@@ -393,23 +407,22 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
                 max_entry_chars = int(len(text) * char_ratio)
                 if len(text) > max_entry_chars:
                     transcript[i]['text'] = text[:max_entry_chars] + "..."
-        
         return transcript
-        
     except Exception as e:
         raise Exception(f"Error retrieving transcript with yt-dlp: {str(e)}")
 
 # Define global methods list for transcript retrieval
-# This allows us to modify it in tests
+# Prioritize yt-dlp first, then youtube_transcript_api
 methods = [
-    ("youtube_transcript_api", get_transcript_with_youtube_api),
-    ("yt-dlp", get_transcript_with_ytdlp)
+    ("yt-dlp", get_transcript_with_ytdlp),
+    ("youtube_transcript_api", get_transcript_with_youtube_api)
 ]
 
 def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
     """
     Get YouTube video transcript with intelligent fallback
-    Tries youtube_transcript_api first, then falls back to yt-dlp if needed
+    Tries yt-dlp first, then falls back to youtube_transcript_api if needed
+    Logs detailed error and performance info.
     
     Args:
         video_id: YouTube video ID
@@ -425,18 +438,18 @@ def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000
     errors = []
     for name, method in methods:
         try:
-            print(f"Trying to get transcript using {name}...")
+            print(f"[INFO] Trying to get transcript using {name}...")
             start_time = time.time()
             transcript = method(video_id, max_entries, max_chars)
             elapsed_time = time.time() - start_time
-            print(f"Successfully retrieved transcript using {name} in {elapsed_time:.2f} seconds")
+            print(f"[SUCCESS] Retrieved transcript using {name} in {elapsed_time:.2f} seconds. Segments: {len(transcript)}")
             return transcript
         except Exception as e:
             error_message = str(e)
-            print(f"Failed with {name}: {error_message}")
+            print(f"[ERROR] Failed with {name}: {error_message}")
             errors.append(f"{name}: {error_message}")
-    
     # If we get here, all methods failed
+    print(f"[FAILURE] All transcript retrieval methods failed. Details: {'; '.join(errors)}")
     raise Exception(f"All transcript retrieval methods failed: {'; '.join(errors)}")
 
 def create_enhanced_text(transcript: List[Dict[str, Any]]) -> str:
