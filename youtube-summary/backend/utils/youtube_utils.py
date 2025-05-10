@@ -337,7 +337,7 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
     try:
         clean_cache_dir()
         ensure_cache_dir()
-        # Configure yt-dlp options
+        # Prepare yt-dlp options
         ydl_opts = {
             'writesubtitles': True,
             'writeautomaticsub': True,
@@ -345,6 +345,13 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             'quiet': True,
             'outtmpl': os.path.join(CACHE_DIR, '%(id)s.%(ext)s'),
         }
+        # Check for cookies.txt in cache dir
+        cookies_path = os.path.join(CACHE_DIR, 'cookies.txt')
+        if os.path.exists(cookies_path):
+            ydl_opts['cookiefile'] = cookies_path
+            print(f"[INFO] Using cookies from {cookies_path}")
+        else:
+            print(f"[INFO] No cookies.txt found in {CACHE_DIR}, proceeding without cookies.")
         # Suppress yt-dlp warnings by redirecting stderr
         with open(os.devnull, 'w') as devnull, contextlib.redirect_stderr(devnull):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
