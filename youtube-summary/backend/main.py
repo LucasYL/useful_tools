@@ -413,6 +413,8 @@ ENGLISH-SPECIFIC INSTRUCTIONS:
         prompts = {
             "short": f"""You are analyzing a YouTube video titled "{title}".
 
+IMPORTANT: All section titles must be plain text. Do NOT use asterisks, stars, or markdown formatting for section titles. Section titles must not be bold, italic, or surrounded by any special symbols.
+
 Video description:
 {description}
 
@@ -433,11 +435,17 @@ Please create a concise summary of the video transcript. Your summary must:
 7. Focus on main points, keep explanations brief but comprehensive
 
 Example format:
-0:00 - [Section Title]
+Correct example:
+0:00 - Section Title
 Brief description of this section
 
-2:15 - [Section Title]
+2:15 - Section Title
 Brief description of another section
+
+Incorrect examples (do NOT use these):
+0:00 - **Section Title**
+0:00 - *Section Title*
+0:00 - __Section Title__
 
 etc.
 
@@ -450,11 +458,13 @@ CRITICAL RULES:
 - YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
 - Never generate timestamps that exceed the video duration.
 - Each section must start with a short, descriptive section title summarizing the main point of that section.
-- Do NOT use asterisks or markdown formatting for section titles. Just use plain text.
+- Do NOT use asterisks, stars, or markdown formatting for section titles. Section titles must be plain text only, with no special symbols.
 
 The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
             
             "detailed": f"""You are analyzing a YouTube video titled "{title}".
+
+IMPORTANT: All section titles must be plain text. Do NOT use asterisks, stars, or markdown formatting for section titles. Section titles must not be bold, italic, or surrounded by any special symbols.
 
 Video description:
 {description}
@@ -476,11 +486,17 @@ Please provide a detailed summary of the video transcript. Your summary must:
 7. Include specific details, examples, and insights from each section
 
 Your summary should follow this format:
-0:00 - [Section Title]
+Correct example:
+0:00 - Section Title
 Detailed summary of this section's content...
 
-2:15 - [Section Title]
+2:15 - Section Title
 Detailed summary of this section's content...
+
+Incorrect examples (do NOT use these):
+0:00 - **Section Title**
+0:00 - *Section Title*
+0:00 - __Section Title__
 
 etc.
 
@@ -494,7 +510,7 @@ CRITICAL RULES:
 - Include concrete details, quotes, examples and specific points from the video.
 - Never generate timestamps that exceed the video duration.
 - Each section must start with a short, descriptive section title summarizing the main point of that section.
-- Do NOT use asterisks or markdown formatting for section titles. Just use plain text.
+- Do NOT use asterisks, stars, or markdown formatting for section titles. Section titles must be plain text only, with no special symbols.
 
 The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }

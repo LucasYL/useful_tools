@@ -419,16 +419,16 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
         raise Exception(f"Error retrieving transcript with yt-dlp: {str(e)}")
 
 # Define global methods list for transcript retrieval
-# Prioritize yt-dlp first, then youtube_transcript_api
+# Prioritize youtube_transcript_api first, then yt-dlp
 methods = [
-    ("yt-dlp", get_transcript_with_ytdlp),
-    ("youtube_transcript_api", get_transcript_with_youtube_api)
+    ("youtube_transcript_api", get_transcript_with_youtube_api),
+    ("yt-dlp", get_transcript_with_ytdlp)
 ]
 
 def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000) -> List[Dict[str, Any]]:
     """
     Get YouTube video transcript with intelligent fallback
-    Tries yt-dlp first, then falls back to youtube_transcript_api if needed
+    Tries youtube_transcript_api first, then falls back to yt-dlp if needed
     Logs detailed error and performance info.
     
     Args:
