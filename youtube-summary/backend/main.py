@@ -450,6 +450,7 @@ CRITICAL RULES:
 - YOU MUST MEET THE MINIMUM LENGTH REQUIREMENTS specified above. DO NOT make the summary too short.
 - Never generate timestamps that exceed the video duration.
 - Each section must start with a short, descriptive section title summarizing the main point of that section.
+- Do NOT use asterisks or markdown formatting for section titles. Just use plain text.
 
 The summary should help viewers quickly understand the entire video's content.{language_instructions}""",
             
@@ -493,6 +494,7 @@ CRITICAL RULES:
 - Include concrete details, quotes, examples and specific points from the video.
 - Never generate timestamps that exceed the video duration.
 - Each section must start with a short, descriptive section title summarizing the main point of that section.
+- Do NOT use asterisks or markdown formatting for section titles. Just use plain text.
 
 The goal is to create a well-structured, comprehensive summary that covers the entire video's content while highlighting the most important information.{language_instructions}"""
         }
