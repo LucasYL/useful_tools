@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 import json
 import traceback
 
-# 确保能找到模块
+# Ensure the module path is set correctly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Depends, HTTPException, Query, status, Form, Request
@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 
-# 更新导入路径
+# Update import paths
 from database.db import get_db, Base, engine
 from database.models import User, Video, Summary, Tag, VideoTag
 from auth.routes import router as auth_router, get_current_user, get_current_user_optional
@@ -28,17 +28,17 @@ from utils.youtube_utils import extract_video_id, get_video_metadata, get_transc
 
 from summary_routes import router as summary_router
 
-# 加载环境变量
+# Load environment variables
 load_dotenv()
 
 
-# 创建FastAPI实例
+# Create FastAPI instance
 app = FastAPI(title="YouTube Summary API", version="0.2.0")
 
-# 注册认证路由 - 添加前缀以匹配前端请求
+# Register authentication routes - add prefix to match frontend requests
 app.include_router(auth_router, prefix="/auth")
 
-# 创建数据库表
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
 # Load environment variables
