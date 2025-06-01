@@ -710,7 +710,8 @@ The goal is to create a well-structured, comprehensive summary that covers the e
         
         try:
             response = client.chat.completions.create(
-                model="anthropic/claude-3.7-sonnet",
+                # model="anthropic/claude-3.7-sonnet",
+                model="anthropic/claude-sonnet-4",
                 messages=[
                     {"role": "system", "content": prompts[summary_type]},
                     {"role": "user", "content": text}
