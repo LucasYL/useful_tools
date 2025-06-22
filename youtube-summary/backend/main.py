@@ -198,6 +198,16 @@ async def summarize_video(
         # Get transcript using fallback (yt-dlp included)
         transcript = get_transcript(video_id)
         
+        # Check if transcript is empty
+        if not transcript or len(transcript) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "No transcript available", 
+                    "message": "This video does not have available subtitles/captions. Please try a video with subtitles enabled."
+                }
+            )
+        
         # Get video metadata
         metadata = get_video_metadata(video_id)
         
@@ -222,6 +232,16 @@ async def summarize_video(
             seconds = int(video_duration % 60)
             enhanced_text += f"[{minutes}:{seconds:02d}] End of video."
         
+        # Check if enhanced text is empty (additional safety check)
+        if not enhanced_text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Empty transcript content", 
+                    "message": "The transcript content is empty or could not be processed."
+                }
+            )
+        
         print(f"[DEBUG] Enhanced text length: {len(enhanced_text)} characters")
             
         # Add format explanation to the prompt
@@ -230,14 +250,14 @@ async def summarize_video(
         # Generate summary with the enhanced text
         summary = generate_summary(enhanced_text, request.summary_type, metadata, request.language, format_note)
         
-        # 如果用户已登录，保存摘要到数据库
+        # If user is logged in, save summary to database
         if current_user:
             try:
-                # 查找或创建视频记录
+                # Find or create video record
                 video_db = db.query(Video).filter(Video.youtube_id == video_id).first()
                 
                 if not video_db:
-                    # 创建新视频记录
+                    # Create new video record
                     video_db = Video(
                         youtube_id=video_id,
                         title=metadata["title"],
@@ -249,13 +269,13 @@ async def summarize_video(
                     db.commit()
                     db.refresh(video_db)
                 
-                # 检查是否已存在该用户对此视频的摘要
+                # Check if summary already exists for this user and video
                 existing_summary = db.query(Summary).filter(
                     Summary.user_id == current_user.id,
                     Summary.video_id == video_db.id
                 ).first()
                 
-                # 已存在则更新，否则创建新记录
+                # Update existing or create new record
                 if existing_summary:
                     existing_summary.summary_text = summary
                     existing_summary.transcript_text = enhanced_text
@@ -264,7 +284,7 @@ async def summarize_video(
                     db.commit()
                     print(f"[DEBUG] Summary updated for user {current_user.username}")
                 else:
-                    # 创建新摘要
+                    # Create new summary
                     db_summary = Summary(
                         user_id=current_user.id,
                         video_id=video_db.id,
@@ -289,6 +309,9 @@ async def summarize_video(
             "transcript": transcript,
             "chapters": metadata["chapters"]
         }
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
         error_message = str(e)
         print(f"Error in summarize_video: {error_message}")

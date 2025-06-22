@@ -167,8 +167,18 @@ def get_transcript_with_youtube_api(video_id: str, max_entries: int = 500, max_c
         Exception: If transcript retrieval fails
     """
     try:
-        # Get raw transcript
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        # Use the new API format
+        ytt_api = YouTubeTranscriptApi()
+        fetched_transcript = ytt_api.fetch(video_id)
+        
+        # Convert FetchedTranscript to our format
+        transcript = []
+        for snippet in fetched_transcript:
+            transcript.append({
+                'text': snippet.text,
+                'start': snippet.start,
+                'duration': snippet.duration
+            })
         
         # Check transcript length
         print(f"Original transcript length: {len(transcript)} entries")
@@ -333,18 +343,23 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
         Exception: If transcript retrieval fails
     """
     import contextlib
+    import glob
     url = f"https://www.youtube.com/watch?v={video_id}"
     try:
         clean_cache_dir()
         ensure_cache_dir()
-        # Prepare yt-dlp options
+        
+        # Prepare yt-dlp options to download subtitles
         ydl_opts = {
             'writesubtitles': True,
             'writeautomaticsub': True,
-            'skip_download': True,
+            'skip_download': True,  # Skip video download, only get subtitles
             'quiet': True,
             'outtmpl': os.path.join(CACHE_DIR, '%(id)s.%(ext)s'),
+            'subtitleslangs': ['en'],  # Prefer English subtitles
+            'subtitlesformat': 'vtt',  # Prefer VTT format
         }
+        
         # Check for cookies.txt in cache dir
         cookies_path = os.path.join(CACHE_DIR, 'cookies.txt')
         if os.path.exists(cookies_path):
@@ -352,52 +367,35 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             print(f"[INFO] Using cookies from {cookies_path}")
         else:
             print(f"[INFO] No cookies.txt found in {CACHE_DIR}, proceeding without cookies.")
-        # Suppress yt-dlp warnings by redirecting stderr
+        
+        # Download subtitles using yt-dlp
         with open(os.devnull, 'w') as devnull, contextlib.redirect_stderr(devnull):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-        subtitles = {}
-        subtitle_type = "unknown"
-        if 'subtitles' in info and info['subtitles']:
-            subtitles = info['subtitles']
-            subtitle_type = "manual"
-        elif 'automatic_captions' in info and info['automatic_captions']:
-            subtitles = info['automatic_captions']
-            subtitle_type = "automatic"
-        else:
-            raise Exception("No subtitles found for this video")
-        print(f"Found {subtitle_type} subtitles with yt-dlp")
-        selected_lang = 'en' if 'en' in subtitles else list(subtitles.keys())[0]
-        formats = subtitles[selected_lang]
-        print(f"Selected language: {selected_lang}")
-        vtt_format = None
-        for fmt in formats:
-            if fmt.get('ext') == 'vtt':
-                vtt_format = fmt
+                ydl.download([url])
+        
+        # Look for downloaded VTT files
+        vtt_files = glob.glob(os.path.join(CACHE_DIR, f"{video_id}*.vtt"))
+        if not vtt_files:
+            raise Exception("No VTT subtitle files were downloaded")
+        
+        # Use the first VTT file found (prefer manual subtitles over auto-generated)
+        vtt_file = vtt_files[0]
+        for file in vtt_files:
+            if '.en.vtt' in file and 'auto' not in file:
+                vtt_file = file
                 break
-        if not vtt_format:
-            vtt_format = formats[0]
-        subtitle_url = vtt_format.get('url')
-        if not subtitle_url:
-            raise Exception("No subtitle URL found")
-        # Save VTT to cache for possible reuse
-        vtt_cache_file = os.path.join(CACHE_DIR, f"{video_id}_{selected_lang}.vtt")
-        subtitle_content = None
-        if os.path.exists(vtt_cache_file):
-            with open(vtt_cache_file, 'r', encoding='utf-8') as f:
-                subtitle_content = f.read()
-        else:
-            response = requests.get(subtitle_url)
-            if response.status_code != 200:
-                raise Exception(f"Failed to download subtitles: HTTP {response.status_code}")
-            subtitle_content = response.text
-            with open(vtt_cache_file, 'w', encoding='utf-8') as f:
-                f.write(subtitle_content)
-        subtitle_format = vtt_format.get('ext', 'unknown')
-        if subtitle_format == 'vtt':
-            transcript = parse_vtt_content(subtitle_content)
-        else:
-            raise Exception(f"Unsupported subtitle format: {subtitle_format}")
+        
+        print(f"Found subtitles with yt-dlp: {os.path.basename(vtt_file)}")
+        
+        # Read and parse the VTT file
+        with open(vtt_file, 'r', encoding='utf-8') as f:
+            subtitle_content = f.read()
+        
+        if not subtitle_content.strip():
+            raise Exception("Downloaded VTT file is empty")
+        
+        transcript = parse_vtt_content(subtitle_content)
+        
         if len(transcript) > max_entries:
             step = max(1, len(transcript) // max_entries)
             sampled_transcript = [transcript[0]]
@@ -406,6 +404,7 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             if transcript[-1] != sampled_transcript[-1]:
                 sampled_transcript.append(transcript[-1])
             transcript = sampled_transcript
+        
         transcript_text_length = sum(len(entry.get('text', '')) for entry in transcript)
         if transcript_text_length > max_chars:
             char_ratio = max_chars / transcript_text_length
@@ -414,6 +413,7 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
                 max_entry_chars = int(len(text) * char_ratio)
                 if len(text) > max_entry_chars:
                     transcript[i]['text'] = text[:max_entry_chars] + "..."
+        
         return transcript
     except Exception as e:
         raise Exception(f"Error retrieving transcript with yt-dlp: {str(e)}")
