@@ -21,6 +21,10 @@ credentials.json
 
 # Python
 __pycache__/
+
+# YouTube cookies (contains sensitive authentication data)
+youtube-summary/backend/transcripts_cache/cookies.txt  
+youtube-summary/backend/transcripts_cache/cookies.txt.backup
 *.py[cod]
 *$py.class
 *.so

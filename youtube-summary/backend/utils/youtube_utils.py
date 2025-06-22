@@ -358,13 +358,55 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             'outtmpl': os.path.join(CACHE_DIR, '%(id)s.%(ext)s'),
             'subtitleslangs': ['en'],  # Prefer English subtitles
             'subtitlesformat': 'vtt',  # Prefer VTT format
+            # 添加更真实的浏览器标识
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            },
+            # 添加更多选项来避免检测
+            'extractor_retries': 3,
+            'socket_timeout': 30,
         }
         
         # Check for cookies.txt in cache dir
         cookies_path = os.path.join(CACHE_DIR, 'cookies.txt')
         if os.path.exists(cookies_path):
-            ydl_opts['cookiefile'] = cookies_path
+            # 检查cookies文件的大小和修改时间
+            file_size = os.path.getsize(cookies_path)
+            file_mtime = os.path.getmtime(cookies_path)
+            file_age_days = (time.time() - file_mtime) / (24 * 3600)
+            
             print(f"[INFO] Using cookies from {cookies_path}")
+            print(f"[INFO] Cookies file size: {file_size} bytes, age: {file_age_days:.1f} days")
+            
+            # 读取cookies文件内容进行基本验证
+            try:
+                with open(cookies_path, 'r', encoding='utf-8') as f:
+                    cookies_content = f.read()
+                    # 检查是否包含YouTube相关的cookies
+                    if 'youtube.com' in cookies_content:
+                        youtube_cookies_count = cookies_content.count('youtube.com')
+                        print(f"[INFO] Found {youtube_cookies_count} YouTube cookies")
+                    else:
+                        print(f"[WARN] No YouTube cookies found in cookies file!")
+                    
+                    # 检查是否有登录相关的cookies
+                    login_indicators = ['SAPISID', 'SSID', 'LOGIN_INFO', 'SID']
+                    found_login_cookies = [indicator for indicator in login_indicators if indicator in cookies_content]
+                    if found_login_cookies:
+                        print(f"[INFO] Found login cookies: {', '.join(found_login_cookies)}")
+                    else:
+                        print(f"[WARN] No login cookies found - this may cause authentication issues")
+                        
+            except Exception as e:
+                print(f"[ERROR] Failed to read cookies file: {e}")
+            
+            ydl_opts['cookiefile'] = cookies_path
         else:
             print(f"[INFO] No cookies.txt found in {CACHE_DIR}, proceeding without cookies.")
         
