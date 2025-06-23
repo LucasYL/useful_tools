@@ -358,7 +358,7 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
             'outtmpl': os.path.join(CACHE_DIR, '%(id)s.%(ext)s'),
             'subtitleslangs': ['en'],  # Prefer English subtitles
             'subtitlesformat': 'vtt',  # Prefer VTT format
-            # 添加更真实的浏览器标识
+            # 添加更真实的浏览器标识和反检测措施
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -366,11 +366,25 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
                 'Accept-Encoding': 'gzip, deflate, br',
                 'DNT': '1',
                 'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1'
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0'
             },
             # 添加更多选项来避免检测
-            'extractor_retries': 3,
-            'socket_timeout': 30,
+            'extractor_retries': 5,
+            'socket_timeout': 60,
+            'sleep_interval': 1,
+            'max_sleep_interval': 3,
+            # 额外的反检测选项
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['web', 'android'],
+                    'player_skip': ['webpage'],
+                }
+            },
         }
         
         # Check for cookies.txt in cache dir
@@ -410,10 +424,30 @@ def get_transcript_with_ytdlp(video_id: str, max_entries: int = 500, max_chars: 
         else:
             print(f"[INFO] No cookies.txt found in {CACHE_DIR}, proceeding without cookies.")
         
-        # Download subtitles using yt-dlp
-        with open(os.devnull, 'w') as devnull, contextlib.redirect_stderr(devnull):
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+        # Download subtitles using yt-dlp with retry mechanism
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"[INFO] Attempt {attempt + 1}/{max_retries} to download subtitles")
+                
+                # Add random delay to avoid rate limiting
+                if attempt > 0:
+                    import random
+                    delay = retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"[INFO] Waiting {delay:.1f} seconds before retry...")
+                    time.sleep(delay)
+                
+                with open(os.devnull, 'w') as devnull, contextlib.redirect_stderr(devnull):
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([url])
+                break  # Success, exit retry loop
+                
+            except Exception as e:
+                print(f"[WARN] Attempt {attempt + 1} failed: {str(e)}")
+                if attempt == max_retries - 1:
+                    raise e  # Last attempt failed, re-raise the exception
         
         # Look for downloaded VTT files
         vtt_files = glob.glob(os.path.join(CACHE_DIR, f"{video_id}*.vtt"))
@@ -485,7 +519,14 @@ def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000
         Exception: If all transcript retrieval methods fail
     """
     errors = []
-    for name, method in methods:
+    
+    # Add initial delay to avoid rate limiting
+    import random
+    initial_delay = random.uniform(0.5, 2.0)
+    print(f"[INFO] Adding initial delay: {initial_delay:.1f} seconds")
+    time.sleep(initial_delay)
+    
+    for i, (name, method) in enumerate(methods):
         try:
             print(f"[INFO] Trying to get transcript using {name}...")
             start_time = time.time()
@@ -497,6 +538,13 @@ def get_transcript(video_id: str, max_entries: int = 500, max_chars: int = 50000
             error_message = str(e)
             print(f"[ERROR] Failed with {name}: {error_message}")
             errors.append(f"{name}: {error_message}")
+            
+            # Add delay between methods to avoid rate limiting
+            if i < len(methods) - 1:  # Not the last method
+                method_delay = random.uniform(2, 5)
+                print(f"[INFO] Waiting {method_delay:.1f} seconds before trying next method...")
+                time.sleep(method_delay)
+    
     # If we get here, all methods failed
     print(f"[FAILURE] All transcript retrieval methods failed. Details: {'; '.join(errors)}")
     raise Exception(f"All transcript retrieval methods failed: {'; '.join(errors)}")
